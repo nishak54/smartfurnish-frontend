@@ -1,189 +1,137 @@
 import React, { useState } from "react";
-import axios from "axios";
 
-const BACKEND_URL = "https://smartfurnish-backend.onrender.com/api/get_items";
+const API_URL = process.env.REACT_APP_API_URL;
 
 function App() {
-  const [budget, setBudget] = useState("");
-  const [items, setItems] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [screen, setScreen] = useState("input");
+  const [budget, setBudget] = useState(2000);
+  const [room] = useState("Living Room");
+  const [style, setStyle] = useState("Modern");
+  const [design, setDesign] = useState(null);
 
-  const handleSubmit = async () => {
-    if (!budget) return alert("Enter budget");
+  const generateDesign = async () => {
+    setScreen("loading");
 
-    const res = await axios.post(BACKEND_URL, {
-      budget: parseFloat(budget),
-      room: "living_room",
-    });
+    try {
+      const res = await fetch(`${API_URL}/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          budget,
+          room,
+          style,
+        }),
+      });
 
-    setItems(res.data);
+      const data = await res.json();
+      setDesign(data);
+      setScreen("design");
+    } catch (err) {
+      console.error(err);
+      setScreen("input");
+    }
   };
 
+  const regenerateDesign = async () => {
+    try {
+      const res = await fetch(`${API_URL}/regenerate`);
+      const data = await res.json();
+      setDesign(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const totalCost =
+    design?.items?.reduce((sum, item) => sum + item.price, 0) || 0;
+
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Smart Furnish 🏠</h1>
+    <div className="app">
+      {screen === "input" && (
+        <div className="card">
+          <h2>SmartFurnish</h2>
+          <p>Design your living space within budget</p>
 
-      <input
-        type="number"
-        placeholder="Enter Budget"
-        value={budget}
-        onChange={(e) => setBudget(e.target.value)}
-      />
-      <button onClick={handleSubmit}>Generate</button>
-
-      {/* ROOM */}
-      {items && (
-        <div
-          style={{
-            position: "relative",
-            width: "800px",
-            height: "500px",
-            marginTop: 20,
-            background: "#e8e5df",
-            border: "6px solid #444",
-            borderRadius: "10px",
-          }}
-        >
-          <div style={{ position: "absolute", top: 10, left: 10 }}>
-            Living Room (12ft x 8ft)
-          </div>
-
-          {/* SOFA */}
-          <div
-            onClick={() => setSelectedItem(items.sofa[0])}
-            style={{
-              position: "absolute",
-              bottom: 20,
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: 260,
-              height: 140,
-              background: "#d6d3ce",
-              borderRadius: 20,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-          >
-            <img
-              src={items.sofa[0]?.image}
-              alt=""
-              style={{ width: "90%", height: "90%", objectFit: "contain" }}
-            />
-          </div>
-
-          {/* COFFEE TABLE */}
-          <div
-            onClick={() => setSelectedItem(items.coffee_table[0])}
-            style={{
-              position: "absolute",
-              bottom: 180,
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: 120,
-              height: 80,
-              background: "#c4b7a6",
-              borderRadius: 10,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-          >
-            <img
-              src={items.coffee_table[0]?.image}
-              alt=""
-              style={{ width: "85%", height: "85%", objectFit: "contain" }}
-            />
-          </div>
-
-          {/* TV STAND */}
-          <div
-            onClick={() => setSelectedItem(items.tv_stand[0])}
-            style={{
-              position: "absolute",
-              top: 40,
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: 220,
-              height: 100,
-              background: "#b0a79f",
-              borderRadius: 10,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-          >
-            <img
-              src={items.tv_stand[0]?.image}
-              alt=""
-              style={{ width: "90%", height: "90%", objectFit: "contain" }}
-            />
-          </div>
-
-          {/* GRID */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundImage:
-                "linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
+          <input
+            type="number"
+            value={budget}
+            onChange={(e) => setBudget(Number(e.target.value))}
+            placeholder="Enter Budget"
           />
+
+          <div className="styles">
+            {["Modern", "Boho", "Minimal"].map((s) => (
+              <button
+                key={s}
+                className={style === s ? "active" : ""}
+                onClick={() => setStyle(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          <button onClick={generateDesign} className="primary-btn">
+            Generate Design
+          </button>
         </div>
       )}
 
-      {/* PRODUCT LIST */}
-      {items &&
-        Object.keys(items).map((cat) => (
-          <div key={cat}>
-            <h3>{cat}</h3>
-            <div style={{ display: "flex", gap: 10 }}>
-              {items[cat].map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: 10,
-                    width: 180,
-                  }}
-                >
-                  <img
-                    src={item.image}
-                    alt=""
-                    style={{ width: "100%", height: 120, objectFit: "cover" }}
-                  />
-                  <p>{item.name}</p>
-                  <b>${item.price}</b>
+      {screen === "loading" && (
+        <div className="loading">
+          <h2>Designing your space...</h2>
+          <p>Optimizing layout and selecting furniture</p>
+        </div>
+      )}
+
+      {screen === "design" && design && (
+        <div className="design-container">
+          <div className="top-bar">
+            <h3>
+              Budget: ${totalCost} / ${budget}
+            </h3>
+            <button onClick={regenerateDesign} className="secondary-btn">
+              🔄 Regenerate
+            </button>
+          </div>
+
+          <p className={design.within_budget ? "budget-ok" : "budget-over"}>
+            {design.within_budget ? "Within Budget" : "Over Budget"}
+          </p>
+
+          <div className="content">
+            {/* Room Visualization */}
+            <div className="room">
+              <div className="zone tv-zone">TV Area</div>
+              <div className="zone sofa-zone">Seating Area</div>
+              <div className="zone center-zone">Center</div>
+
+              {design.layout.map((item, i) => (
+                <div key={i} className="box">
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            {/* Items */}
+            <div className="products">
+              <h3>Furniture Items</h3>
+
+              {design.items.map((item, i) => (
+                <div key={i} className="product">
+                  <h4>{item.name}</h4>
+                  <p>${item.price}</p>
+                  <button className="view-btn">View</button>
                 </div>
               ))}
             </div>
           </div>
-        ))}
 
-      {/* POPUP */}
-      {selectedItem && (
-        <div
-          style={{
-            position: "fixed",
-            top: "20%",
-            left: "35%",
-            background: "white",
-            padding: 20,
-            border: "2px solid black",
-          }}
-        >
-          <h3>{selectedItem.name}</h3>
-          <img src={selectedItem.image} alt="" style={{ width: "100%" }} />
-          <p>Price: ${selectedItem.price}</p>
-          <p>Material: Wood / Fabric</p>
-          <p>Color: Grey / Brown</p>
-          <p>Dimensions: 80 x 35 x 30 inches</p>
-
-          <button onClick={() => setSelectedItem(null)}>Close</button>
+          <button onClick={() => setScreen("input")} className="back-btn">
+            ← Back
+          </button>
         </div>
       )}
     </div>
