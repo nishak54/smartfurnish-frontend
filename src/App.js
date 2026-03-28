@@ -7,6 +7,7 @@ function App() {
   const [budget, setBudget] = useState("");
   const [items, setItems] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   const handleSubmit = async () => {
     if (!budget || isNaN(budget)) {
@@ -48,30 +49,39 @@ function App() {
 
       {items && (
         <>
-          {/* 🧱 2D ROOM LAYOUT */}
+          {/* 🏠 ROOM */}
           <div
             style={{
               position: "relative",
               width: "800px",
               height: "500px",
-              border: "2px solid black",
               marginBottom: 30,
-              background: "#f5f5f5",
+              background: "#e8e5df",
+              border: "6px solid #444",
+              borderRadius: "8px",
             }}
           >
+            {/* ROOM LABEL */}
+            <div style={{ position: "absolute", top: 5, left: 10 }}>
+              Living Room (12ft x 8ft)
+            </div>
+
             {/* SOFA */}
             {items.sofa?.[0] && (
               <img
                 src={items.sofa[0].image}
                 alt="sofa"
+                onClick={() => setSelectedItem(items.sofa[0])}
                 style={{
                   position: "absolute",
-                  bottom: "10px",
+                  bottom: "20px",
                   left: "50%",
                   transform: "translateX(-50%)",
-                  width: "250px",
-                  height: "150px",
+                  width: "260px",
+                  height: "140px",
                   objectFit: "contain",
+                  cursor: "pointer",
+                  filter: "drop-shadow(0px 4px 6px rgba(0,0,0,0.3))",
                 }}
               />
             )}
@@ -81,6 +91,7 @@ function App() {
               <img
                 src={items.coffee_table[0].image}
                 alt="table"
+                onClick={() => setSelectedItem(items.coffee_table[0])}
                 style={{
                   position: "absolute",
                   bottom: "180px",
@@ -89,6 +100,8 @@ function App() {
                   width: "120px",
                   height: "80px",
                   objectFit: "contain",
+                  cursor: "pointer",
+                  filter: "drop-shadow(0px 3px 5px rgba(0,0,0,0.3))",
                 }}
               />
             )}
@@ -98,17 +111,32 @@ function App() {
               <img
                 src={items.tv_stand[0].image}
                 alt="tv"
+                onClick={() => setSelectedItem(items.tv_stand[0])}
                 style={{
                   position: "absolute",
-                  top: "20px",
+                  top: "40px",
                   left: "50%",
                   transform: "translateX(-50%)",
                   width: "200px",
                   height: "100px",
                   objectFit: "contain",
+                  cursor: "pointer",
+                  filter: "drop-shadow(0px 3px 5px rgba(0,0,0,0.3))",
                 }}
               />
             )}
+
+            {/* FLOOR GRID (visual realism) */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage:
+                  "linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)",
+                backgroundSize: "40px 40px",
+                pointerEvents: "none",
+              }}
+            />
           </div>
 
           {/* 🛍️ PRODUCT LIST */}
@@ -123,6 +151,7 @@ function App() {
                       border: "1px solid #ccc",
                       padding: 10,
                       width: 180,
+                      borderRadius: "8px",
                     }}
                   >
                     <img
@@ -146,6 +175,41 @@ function App() {
             </div>
           ))}
         </>
+      )}
+
+      {/* 🧾 DETAILS POPUP */}
+      {selectedItem && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20%",
+            left: "35%",
+            background: "white",
+            padding: 20,
+            border: "2px solid #333",
+            borderRadius: "10px",
+            width: "300px",
+            zIndex: 1000,
+          }}
+        >
+          <h3>{selectedItem.name}</h3>
+          <img
+            src={selectedItem.image}
+            alt=""
+            style={{ width: "100%", marginBottom: 10 }}
+          />
+          <p><b>Price:</b> ${selectedItem.price}</p>
+          <p><b>Material:</b> Wood / Fabric</p>
+          <p><b>Color:</b> Grey / Brown</p>
+          <p><b>Dimensions:</b> 80 x 35 x 30 inches</p>
+
+          <a href={selectedItem.link} target="_blank" rel="noreferrer">
+            View on Amazon
+          </a>
+
+          <br /><br />
+          <button onClick={() => setSelectedItem(null)}>Close</button>
+        </div>
       )}
     </div>
   );
