@@ -10,6 +10,8 @@ const ITEM_LABELS = {
   tv_stand: "TV Stand",
 };
 
+const ANGLES = ["front", "left", "right"];
+
 function App() {
   const [screen, setScreen] = useState("input");
   const [budget, setBudget] = useState(2000);
@@ -18,6 +20,7 @@ function App() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [detailItem, setDetailItem] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [currentAngle, setCurrentAngle] = useState("front");
   const [dragItemId, setDragItemId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -27,21 +30,19 @@ function App() {
 
   const generateDesign = async () => {
     setScreen("loading");
-
     try {
       const res = await fetch(`${API_URL}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ budget, room: "Living Room", style }),
       });
-
       const data = await res.json();
       setDesign(data);
       setSelectedItem(data.items?.[0] || null);
       setScreen("design");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to generate design.");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to generate design");
       setScreen("input");
     }
   };
@@ -53,13 +54,11 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ budget }),
       });
-
       const data = await res.json();
       setDesign(data);
       setSelectedItem(data.items?.[0] || null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to regenerate design.");
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -68,39 +67,32 @@ function App() {
       const res = await fetch(`${API_URL}/regenerate-item`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemType,
-          budget,
-          design,
-        }),
+        body: JSON.stringify({ itemType, design, budget }),
       });
-
       const data = await res.json();
       setDesign(data);
-      const updated = data.items.find((item) => item.type === itemType);
+      const updated = data.items.find((x) => x.type === itemType);
       if (updated) setSelectedItem(updated);
       if (detailItem?.type === itemType) setDetailItem(updated);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to regenerate item.");
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const openDetails = (item) => {
-    setDetailItem(item);
-  };
-
-  const getRoomRelativePosition = (clientX, clientY, roomRect, item) => {
-    const x = clientX - roomRect.left - dragOffset.x;
-    const y = clientY - roomRect.top - dragOffset.y;
-
-    const maxX = roomRect.width - item.position.width;
-    const maxY = roomRect.height - item.position.height;
-
-    return {
-      x: Math.max(0, Math.min(x, maxX)),
-      y: Math.max(0, Math.min(y, maxY)),
-    };
+  const removeItem = async (itemType) => {
+    try {
+      const res = await fetch(`${API_URL}/remove-item`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemType, design, budget }),
+      });
+      const data = await res.json();
+      setDesign(data);
+      if (selectedItem?.type === itemType) setSelectedItem(null);
+      if (detailItem?.type === itemType) setDetailItem(null);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDragStart = (e, item) => {
@@ -113,113 +105,123 @@ function App() {
     });
   };
 
-  const handleRoomMouseMove = (e, scale = 1) => {
+  const handleRoomMove = (e, scale = 1) => {
     if (!dragItemId || !design) return;
-
     const roomRect = e.currentTarget.getBoundingClientRect();
 
-    setDesign((prev) => {
-      const updated = {
-        ...prev,
-        items: prev.items.map((item) => {
-          if (item.id !== dragItemId) return item;
+    setDesign((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => {
+        if (item.id !== dragItemId) return item;
+        const pos = item.positions[currentAngle];
+        const width = pos.width * scale;
+        const height = pos.height * scale;
 
-          const adjustedItem = {
-            ...item,
-            position: {
-              ...item.position,
-              width: item.position.width * scale,
-              height: item.position.height * scale,
+        const rawX = e.clientX - roomRect.left - dragOffset.x;
+        const rawY = e.clientY - roomRect.top - dragOffset.y;
+
+        const maxX = roomRect.width - width;
+        const maxY = roomRect.height - height;
+
+        return {
+          ...item,
+          positions: {
+            ...item.positions,
+            [currentAngle]: {
+              ...pos,
+              x: Math.max(0, Math.min(rawX, maxX)) / scale,
+              y: Math.max(0, Math.min(rawY, maxY)) / scale,
             },
-          };
-
-          const pos = getRoomRelativePosition(
-            e.clientX,
-            e.clientY,
-            roomRect,
-            adjustedItem
-          );
-
-          return {
-            ...item,
-            position: {
-              ...item.position,
-              x: pos.x / scale,
-              y: pos.y / scale,
-            },
-          };
-        }),
-      };
-      return updated;
-    });
+          },
+        };
+      }),
+    }));
   };
 
   const handleDragEnd = async () => {
     if (!dragItemId || !design) return;
     setDragItemId(null);
-
     try {
-      const res = await fetch(`${API_URL}/update-layout`, {
+      await fetch(`${API_URL}/update-layout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ design, budget }),
       });
-
-      const data = await res.json();
-      setDesign(data);
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const renderRoom = (big = false) => {
+  const renderRoom = (large = false) => {
     if (!design) return null;
-
-    const scale = big ? 1 : 0.52;
+    const scale = large ? 1 : 0.58;
+    const bg = design.room.angles[currentAngle];
 
     return (
       <div
-        className={`room-canvas ${big ? "room-canvas-large" : ""}`}
+        className={`room-stage ${large ? "room-stage-large" : ""}`}
         style={{
           width: design.room.width * scale,
           height: design.room.height * scale,
-          background: design.room.background,
         }}
         onClick={() => {
-          if (!big) setEditorOpen(true);
+          if (!large) setEditorOpen(true);
         }}
-        onMouseMove={(e) => handleRoomMouseMove(e, scale)}
+        onMouseMove={(e) => handleRoomMove(e, scale)}
         onMouseUp={handleDragEnd}
         onMouseLeave={handleDragEnd}
       >
-        <div className="room-wall-art" style={{ transform: `scale(${scale})` }}>
-          <div className="tv-screen" />
-          <div className="window-panel" />
-          <div className="rug" />
-        </div>
+        <img className="room-bg" src={bg} alt={`Living room ${currentAngle}`} />
 
-        {design.items.map((item) => (
-          <div
-            key={item.id}
-            className={`furniture-item ${
-              selectedItem?.id === item.id ? "selected-furniture" : ""
-            }`}
-            style={{
-              left: item.position.x * scale,
-              top: item.position.y * scale,
-              width: item.position.width * scale,
-              height: item.position.height * scale,
-            }}
-            onMouseDown={(e) => handleDragStart(e, item)}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedItem(item);
-            }}
-          >
-            <img src={item.image} alt={item.name} draggable={false} />
-            <div className="item-chip">{ITEM_LABELS[item.type]}</div>
-          </div>
-        ))}
+        {design.items.map((item) => {
+          const pos = item.positions[currentAngle];
+          if (!pos) return null;
+
+          return (
+            <div
+              key={item.id}
+              className={`room-item ${
+                selectedItem?.id === item.id ? "room-item-selected" : ""
+              }`}
+              style={{
+                left: pos.x * scale,
+                top: pos.y * scale,
+                width: pos.width * scale,
+                height: pos.height * scale,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedItem(item);
+              }}
+              onMouseDown={(e) => handleDragStart(e, item)}
+            >
+              <img src={item.images[currentAngle]} alt={item.name} draggable={false} />
+
+              <div className="item-toolbar">
+                <button
+                  className="icon-btn remove-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeItem(item.type);
+                  }}
+                  title="Remove item"
+                >
+                  ✕
+                </button>
+                <button
+                  className="icon-btn regen-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    regenerateItem(item.type);
+                  }}
+                  title="Regenerate item"
+                >
+                  ↻
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -231,33 +233,30 @@ function App() {
           <div className="hero-badge">SmartFurnish</div>
           <h1>Design your living room within budget</h1>
           <p className="hero-sub">
-            Generate a visual layout with sofa, center table, and TV stand.
+            Generate a cleaner, visual room layout with realistic items.
           </p>
 
-          <div className="form-grid">
-            <div className="field">
-              <label>Budget</label>
-              <input
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                placeholder="Enter budget"
-              />
-            </div>
+          <div className="field">
+            <label>Budget</label>
+            <input
+              type="number"
+              value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))}
+            />
+          </div>
 
-            <div className="field">
-              <label>Style</label>
-              <div className="styles">
-                {["Modern", "Boho", "Minimal"].map((s) => (
-                  <button
-                    key={s}
-                    className={`style-pill ${style === s ? "active-style" : ""}`}
-                    onClick={() => setStyle(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+          <div className="field">
+            <label>Style</label>
+            <div className="styles">
+              {["Modern", "Boho", "Minimal"].map((s) => (
+                <button
+                  key={s}
+                  className={`style-pill ${style === s ? "active-style" : ""}`}
+                  onClick={() => setStyle(s)}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -281,7 +280,7 @@ function App() {
             <div>
               <h2 className="page-title">Your Living Room Concept</h2>
               <p className="page-subtitle">
-                Click the layout to open the large editor.
+                Click the layout to open the bigger editor.
               </p>
             </div>
 
@@ -296,15 +295,26 @@ function App() {
             </div>
           </div>
 
+          <div className="angle-bar">
+            {ANGLES.map((angle) => (
+              <button
+                key={angle}
+                className={`angle-btn ${currentAngle === angle ? "angle-btn-active" : ""}`}
+                onClick={() => setCurrentAngle(angle)}
+              >
+                {angle.charAt(0).toUpperCase() + angle.slice(1)} View
+              </button>
+            ))}
+          </div>
+
           <div className="main-grid">
             <div className="preview-card">
               <div className="card-head">
-                <h3>2D Room Layout</h3>
+                <h3>Room Preview</h3>
                 <button className="secondary-btn" onClick={regenerateDesign}>
                   Regenerate Full Design
                 </button>
               </div>
-
               {renderRoom(false)}
             </div>
 
@@ -323,13 +333,14 @@ function App() {
                     onClick={() => setSelectedItem(item)}
                   >
                     <div className="product-thumb">
-                      <img src={item.image} alt={item.name} />
+                      <img src={item.images.front} alt={item.name} />
                     </div>
 
                     <div className="product-info">
                       <div className="product-type">{ITEM_LABELS[item.type]}</div>
                       <h4>{item.name}</h4>
                       <p className="price">${item.price}</p>
+
                       <div className="product-actions">
                         <button
                           className="ghost-btn"
@@ -341,10 +352,19 @@ function App() {
                           Regenerate
                         </button>
                         <button
+                          className="ghost-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(item.type);
+                          }}
+                        >
+                          Remove
+                        </button>
+                        <button
                           className="primary-small-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            openDetails(item);
+                            setDetailItem(item);
                           }}
                         >
                           View
@@ -363,28 +383,35 @@ function App() {
                 <div className="modal-header">
                   <div>
                     <h3>Living Room Editor</h3>
-                    <p>Drag items to reposition them. Regenerate items individually.</p>
+                    <p>Drag items, regenerate, remove, and switch viewing angles.</p>
                   </div>
                   <button className="close-btn" onClick={() => setEditorOpen(false)}>
                     ✕
                   </button>
                 </div>
 
+                <div className="angle-bar editor-angle-bar">
+                  {ANGLES.map((angle) => (
+                    <button
+                      key={angle}
+                      className={`angle-btn ${
+                        currentAngle === angle ? "angle-btn-active" : ""
+                      }`}
+                      onClick={() => setCurrentAngle(angle)}
+                    >
+                      {angle.charAt(0).toUpperCase() + angle.slice(1)} View
+                    </button>
+                  ))}
+                </div>
+
                 <div className="editor-grid">
                   <div className="editor-canvas-wrap">{renderRoom(true)}</div>
 
                   <div className="editor-side-panel">
-                    <div className="editor-budget">
-                      <strong>${totalCost} / ${budget}</strong>
-                      <span className={design.within_budget ? "ok-text" : "over-text"}>
-                        {design.within_budget ? "Within Budget" : "Over Budget"}
-                      </span>
-                    </div>
-
                     {design.items.map((item) => (
                       <div key={item.id} className="editor-item-card">
                         <div className="editor-item-top">
-                          <img src={item.image} alt={item.name} />
+                          <img src={item.images.front} alt={item.name} />
                           <div>
                             <div className="product-type">{ITEM_LABELS[item.type]}</div>
                             <div className="editor-item-name">{item.name}</div>
@@ -400,8 +427,14 @@ function App() {
                             Regenerate
                           </button>
                           <button
+                            className="ghost-btn"
+                            onClick={() => removeItem(item.type)}
+                          >
+                            Remove
+                          </button>
+                          <button
                             className="primary-small-btn"
-                            onClick={() => openDetails(item)}
+                            onClick={() => setDetailItem(item)}
                           >
                             View
                           </button>
@@ -430,7 +463,7 @@ function App() {
 
                 <div className="details-grid">
                   <div className="details-image-wrap">
-                    <img src={detailItem.image} alt={detailItem.name} />
+                    <img src={detailItem.images.front} alt={detailItem.name} />
                   </div>
 
                   <div className="details-info">
@@ -439,7 +472,7 @@ function App() {
                     <div className="detail-row"><span>Dimensions</span><strong>{detailItem.dimensions}</strong></div>
                     <div className="detail-row"><span>Rating</span><strong>{detailItem.rating} / 5</strong></div>
                     <div className="detail-row"><span>Reviews</span><strong>{detailItem.reviews}</strong></div>
-                    <div className="detail-row"><span>Purchases so far</span><strong>{detailItem.purchases}</strong></div>
+                    <div className="detail-row"><span>Purchases</span><strong>{detailItem.purchases}</strong></div>
                     <div className="detail-row"><span>Stock</span><strong>{detailItem.in_stock ? "In Stock" : "Out of Stock"}</strong></div>
                     <div className="detail-row"><span>Material</span><strong>{detailItem.material}</strong></div>
                     <div className="detail-row"><span>Brand</span><strong>{detailItem.brand}</strong></div>
