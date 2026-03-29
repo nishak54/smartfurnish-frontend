@@ -11,6 +11,11 @@ const ITEM_LABELS = {
 };
 
 const ANGLES = ["front", "left", "right"];
+const MIN_SIZE = {
+  sofa: { width: 180, height: 90 },
+  center_table: { width: 95, height: 55 },
+  tv_stand: { width: 120, height: 55 },
+};
 
 function App() {
   const [screen, setScreen] = useState("input");
@@ -22,6 +27,7 @@ function App() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [currentAngle, setCurrentAngle] = useState("front");
   const [dragItemId, setDragItemId] = useState(null);
+  const [resizeItemId, setResizeItemId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const totalCost = useMemo(() => {
@@ -96,6 +102,7 @@ function App() {
   };
 
   const handleDragStart = (e, item) => {
+    e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     setDragItemId(item.id);
     setSelectedItem(item);
@@ -105,42 +112,78 @@ function App() {
     });
   };
 
+  const handleResizeStart = (e, item) => {
+    e.stopPropagation();
+    setResizeItemId(item.id);
+    setSelectedItem(item);
+  };
+
   const handleRoomMove = (e, scale = 1) => {
-    if (!dragItemId || !design) return;
+    if ((!dragItemId && !resizeItemId) || !design) return;
     const roomRect = e.currentTarget.getBoundingClientRect();
 
     setDesign((prev) => ({
       ...prev,
       items: prev.items.map((item) => {
-        if (item.id !== dragItemId) return item;
-        const pos = item.positions[currentAngle];
-        const width = pos.width * scale;
-        const height = pos.height * scale;
+        if (dragItemId && item.id === dragItemId) {
+          const pos = item.positions[currentAngle];
+          const width = pos.width * scale;
+          const height = pos.height * scale;
 
-        const rawX = e.clientX - roomRect.left - dragOffset.x;
-        const rawY = e.clientY - roomRect.top - dragOffset.y;
+          const rawX = e.clientX - roomRect.left - dragOffset.x;
+          const rawY = e.clientY - roomRect.top - dragOffset.y;
 
-        const maxX = roomRect.width - width;
-        const maxY = roomRect.height - height;
+          const maxX = roomRect.width - width;
+          const maxY = roomRect.height - height;
 
-        return {
-          ...item,
-          positions: {
-            ...item.positions,
-            [currentAngle]: {
-              ...pos,
-              x: Math.max(0, Math.min(rawX, maxX)) / scale,
-              y: Math.max(0, Math.min(rawY, maxY)) / scale,
+          return {
+            ...item,
+            positions: {
+              ...item.positions,
+              [currentAngle]: {
+                ...pos,
+                x: Math.max(0, Math.min(rawX, maxX)) / scale,
+                y: Math.max(0, Math.min(rawY, maxY)) / scale,
+              },
             },
-          },
-        };
+          };
+        }
+
+        if (resizeItemId && item.id === resizeItemId) {
+          const pos = item.positions[currentAngle];
+          const nextWidth = (e.clientX - roomRect.left - pos.x * scale) / scale;
+          const ratio = pos.height / pos.width;
+          const minW = MIN_SIZE[item.type]?.width || 80;
+          const maxW = item.type === "sofa" ? 380 : item.type === "tv_stand" ? 250 : 190;
+          const safeWidth = Math.max(minW, Math.min(nextWidth, maxW));
+          const safeHeight = Math.max(
+            MIN_SIZE[item.type]?.height || 50,
+            safeWidth * ratio
+          );
+
+          return {
+            ...item,
+            positions: {
+              ...item.positions,
+              [currentAngle]: {
+                ...pos,
+                width: safeWidth,
+                height: safeHeight,
+              },
+            },
+          };
+        }
+
+        return item;
       }),
     }));
   };
 
-  const handleDragEnd = async () => {
-    if (!dragItemId || !design) return;
+  const handleMouseEnd = async () => {
+    if ((!dragItemId && !resizeItemId) || !design) return;
     setDragItemId(null);
+    setResizeItemId(null);
+
     try {
       await fetch(`${API_URL}/update-layout`, {
         method: "POST",
@@ -196,8 +239,8 @@ function App() {
           if (!large) setEditorOpen(true);
         }}
         onMouseMove={(e) => handleRoomMove(e, scale)}
-        onMouseUp={handleDragEnd}
-        onMouseLeave={handleDragEnd}
+        onMouseUp={handleMouseEnd}
+        onMouseLeave={handleMouseEnd}
       >
         {renderRoomScene()}
 
@@ -255,6 +298,12 @@ function App() {
                   ↻
                 </button>
               </div>
+
+              <button
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, item)}
+                title="Resize item"
+              />
             </div>
           );
         })}
@@ -425,7 +474,7 @@ function App() {
                 <div className="modal-header">
                   <div>
                     <h3>Living Room Editor</h3>
-                    <p>Drag items, regenerate, remove, and switch viewing angles.</p>
+                    <p>Drag items, resize them, regenerate, remove, and switch viewing angles.</p>
                   </div>
                   <button className="close-btn" onClick={() => setEditorOpen(false)}>
                     ✕
@@ -541,4 +590,5 @@ function App() {
     </div>
   );
 }
+
 export default App;

@@ -217,8 +217,6 @@ button, input { font: inherit; }
 
 .card-head h3 { margin: 0; }
 
-/* Room */
-
 .room-stage {
   position: relative;
   overflow: hidden;
@@ -251,12 +249,8 @@ button, input { font: inherit; }
   border-radius: 26px;
 }
 
-.panel-left-front, .panel-left-left, .panel-left-right {
-  left: 28px;
-}
-.panel-right-front, .panel-right-left, .panel-right-right {
-  right: 28px;
-}
+.panel-left-front, .panel-left-left, .panel-left-right { left: 28px; }
+.panel-right-front, .panel-right-left, .panel-right-right { right: 28px; }
 
 .room-floor {
   position: absolute;
@@ -513,8 +507,6 @@ button, input { font: inherit; }
   border-radius: 999px;
 }
 
-/* Furniture */
-
 .room-item {
   position: absolute;
   z-index: 3;
@@ -539,17 +531,17 @@ button, input { font: inherit; }
   pointer-events: none;
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 10px 12px rgba(0,0,0,0.12));
+  filter: drop-shadow(0 10px 12px rgba(0,0,0,0.16)) saturate(0.98);
 }
 
 .item-shadow {
   position: absolute;
-  left: 10%;
-  right: 10%;
-  bottom: 4%;
-  height: 14%;
-  background: rgba(0,0,0,0.14);
-  filter: blur(12px);
+  left: 8%;
+  right: 8%;
+  bottom: 3%;
+  height: 13%;
+  background: rgba(0,0,0,0.18);
+  filter: blur(14px);
   border-radius: 50%;
   z-index: 1;
 }
@@ -561,6 +553,15 @@ button, input { font: inherit; }
   display: flex;
   gap: 6px;
   z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.room-item:hover .item-toolbar,
+.room-item-selected .item-toolbar {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .icon-btn {
@@ -576,6 +577,27 @@ button, input { font: inherit; }
 
 .remove-btn { background: #dc2626; }
 .regen-btn { background: #2563eb; }
+
+.resize-handle {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 4px;
+  background: #111827;
+  opacity: 0;
+  pointer-events: none;
+  cursor: nwse-resize;
+  z-index: 5;
+}
+
+.room-item:hover .resize-handle,
+.room-item-selected .resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .product-list {
   display: grid;
