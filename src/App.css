@@ -1,50 +1,355 @@
-.designer {
-  display: flex;
-  height: 100vh;
+* {
+  box-sizing: border-box;
 }
 
-.canvas-section {
-  flex: 2;
-  background: #f3f4f6;
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  font-family: Inter, Arial, sans-serif;
+  background: #eef2f7;
+  color: #0f172a;
 }
 
-.side-panel {
-  flex: 1;
-  padding: 20px;
-  background: white;
-  overflow-y: auto;
+button,
+input,
+select {
+  font: inherit;
 }
 
-.card {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+.app-shell {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* PAGE 1 */
+
+.setup-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background:
+    radial-gradient(circle at top left, #dbeafe, transparent 28%),
+    linear-gradient(180deg, #f8fbff 0%, #eef2f7 100%);
+}
+
+.setup-card {
+  width: 100%;
+  max-width: 560px;
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid #e5e7eb;
-  padding: 10px;
-  border-radius: 12px;
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
 }
 
-.card img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
+.setup-kicker {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
 }
 
-.actions button {
-  margin-right: 8px;
-  padding: 6px 10px;
-  border-radius: 8px;
+.setup-card h1 {
+  margin: 0 0 12px;
+  font-size: 40px;
+  line-height: 1.05;
+}
+
+.setup-subtitle {
+  margin: 0 0 24px;
+  color: #475569;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.field-group {
+  margin-bottom: 18px;
+}
+
+.field-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.field-group input,
+.field-group select {
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid #d7dde7;
+  background: #fff;
+  padding: 0 14px;
+  outline: none;
+}
+
+.primary-button {
+  width: 100%;
+  height: 54px;
   border: none;
+  border-radius: 16px;
+  background: #0f172a;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+/* PAGE 2 */
+
+.workspace-page {
+  min-height: 100vh;
+  padding: 20px;
+  background: #edf2f8;
+}
+
+.workspace-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #dde5f0;
+}
+
+.workspace-title {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.workspace-subtitle {
+  margin-top: 4px;
+  color: #64748b;
+}
+
+.budget-pill {
+  min-width: 220px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #f1f5f9;
+  border: 1px solid #dde5f0;
+}
+
+.workspace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.9fr);
+  gap: 18px;
+}
+
+.workspace-left,
+.workspace-right {
+  min-width: 0;
+}
+
+.tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.tool-row button {
+  border: 1px solid #d3dbe6;
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 14px;
   cursor: pointer;
 }
 
-.regen-all {
-  width: 100%;
-  padding: 12px;
-  background: black;
+.tool-row .tool-active {
+  background: #0f172a;
   color: white;
-  border-radius: 10px;
+  border-color: #0f172a;
+}
+
+.viewer-frame {
+  height: 680px;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid #d9e1ec;
+  background: #f8fafc;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.helper-bar {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.helper-bar span {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #dde5f0;
+  border-radius: 999px;
+  padding: 10px 12px;
+}
+
+.workspace-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.workspace-card {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #dbe3ee;
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.selected-card {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.08);
+}
+
+.workspace-card img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.workspace-card-category {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.workspace-card-title {
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.workspace-card-price {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.workspace-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workspace-card-actions button {
   border: none;
-  margin-top: 20px;
+  background: #e9eef5;
+  color: #111827;
+  padding: 10px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.workspace-card-actions.secondary {
+  margin-top: 8px;
+}
+
+.regen-full-button {
+  width: 100%;
+  border: none;
+  background: #dfe6ff;
+  color: #2d35b0;
+  padding: 16px;
+  border-radius: 18px;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.selection-panel {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #dbe3ee;
+  border-radius: 22px;
+  padding: 16px;
+}
+
+.selection-heading {
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.selection-title {
+  font-size: 20px;
+  font-weight: 750;
+}
+
+.selection-meta {
+  margin-top: 6px;
+  color: #475569;
+}
+
+.item-badge {
+  background: rgba(15, 23, 42, 0.9);
+  color: white;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1200px) {
+  .workspace-body {
+    grid-template-columns: 1fr;
+  }
+
+  .viewer-frame {
+    height: 560px;
+  }
+}
+
+@media (max-width: 720px) {
+  .setup-card h1 {
+    font-size: 30px;
+  }
+
+  .workspace-title {
+    font-size: 22px;
+  }
+
+  .workspace-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .budget-pill {
+    width: 100%;
+  }
+
+  .workspace-card {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .workspace-card img {
+    width: 80px;
+    height: 80px;
+  }
 }
