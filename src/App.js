@@ -10,18 +10,33 @@ const SOFA_OPTIONS = [
     name: "Sofa 1",
     price: 650,
     imagePath: "/assets/items/sofa/sofa1.webp",
+    width: 3.0,
+    height: 1.35,
+    bottomTrim: 0.22,
+    shadowScaleX: 1.35,
+    shadowScaleZ: 0.42,
   },
   {
     id: "sofa2",
     name: "Sofa 2",
     price: 720,
     imagePath: "/assets/items/sofa/sofa2.webp",
+    width: 2.7,
+    height: 1.45,
+    bottomTrim: 0.16,
+    shadowScaleX: 1.15,
+    shadowScaleZ: 0.45,
   },
   {
     id: "sofa3",
     name: "Sofa 3",
     price: 810,
     imagePath: "/assets/items/sofa/sofa3.webp",
+    width: 2.9,
+    height: 1.4,
+    bottomTrim: 0.2,
+    shadowScaleX: 1.2,
+    shadowScaleZ: 0.44,
   },
 ];
 
@@ -66,17 +81,16 @@ function RoomShell() {
     <>
       <color attach="background" args={["#eef2f7"]} />
 
-      <ambientLight intensity={0.95} />
+      <ambientLight intensity={1.0} />
       <directionalLight
         position={[8, 10, 6]}
-        intensity={1.15}
+        intensity={1.2}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
       <directionalLight position={[-5, 5, -3]} intensity={0.35} />
 
-      {/* Floor */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, 0]}
@@ -86,7 +100,6 @@ function RoomShell() {
         <meshStandardMaterial color="#dec8a8" />
       </mesh>
 
-      {/* Rug */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[-0.4, 0.01, 0.4]}
@@ -96,7 +109,6 @@ function RoomShell() {
         <meshStandardMaterial color="#d8d0f0" />
       </mesh>
 
-      {/* Walls */}
       <mesh position={[0, 2.6, -5.3]} receiveShadow>
         <boxGeometry args={[14, 5.2, 0.2]} />
         <meshStandardMaterial color="#eee9e1" />
@@ -112,7 +124,6 @@ function RoomShell() {
         <meshStandardMaterial color="#f7f2eb" />
       </mesh>
 
-      {/* Window */}
       <mesh position={[-5.8, 2.2, -2.7]}>
         <boxGeometry args={[0.12, 1.7, 1.6]} />
         <meshStandardMaterial color="#ffffff" />
@@ -123,7 +134,6 @@ function RoomShell() {
         <meshStandardMaterial color="#cfe7ff" />
       </mesh>
 
-      {/* Plant */}
       <group position={[5.2, 0, 2.2]}>
         <mesh position={[0, 0.3, 0]}>
           <cylinderGeometry args={[0.24, 0.24, 0.6, 24]} />
@@ -161,7 +171,7 @@ function useSofaTexture(path) {
 }
 
 function SofaObject({
-  imagePath,
+  sofa,
   sofaState,
   setSofaState,
   selected,
@@ -169,38 +179,48 @@ function SofaObject({
   transformMode,
   orbitRef,
 }) {
-  const texture = useSofaTexture(imagePath);
+  const texture = useSofaTexture(sofa.imagePath);
   const groupRef = useRef(null);
 
-  const width = 2.8;
-  const height = 1.65;
-  const layers = 7;
-  const depthStep = 0.018;
+  const layers = 8;
+  const depthStep = 0.02;
+  const layerOffsets = useMemo(
+    () => Array.from({ length: layers }, (_, i) => i * depthStep),
+    []
+  );
 
-  const layerOffsets = useMemo(() => {
-    return Array.from({ length: layers }, (_, i) => i * depthStep);
-  }, [layers]);
+  const width = sofa.width;
+  const height = sofa.height;
 
-  const syncTransform = () => {
+  const visualLift = height / 2 - sofa.bottomTrim;
+
+  const clampAndSave = () => {
     if (!groupRef.current) return;
 
-    const px = Number(groupRef.current.position.x.toFixed(2));
-    const pz = Number(groupRef.current.position.z.toFixed(2));
+    const x = Number(groupRef.current.position.x.toFixed(2));
+    const z = Number(groupRef.current.position.z.toFixed(2));
     const ry = Number(groupRef.current.rotation.y.toFixed(2));
 
-    const sx = groupRef.current.scale.x;
-    const uniformScale = Number(Math.max(0.45, Math.min(2.2, sx)).toFixed(2));
+    let s = groupRef.current.scale.x;
+    s = Math.max(0.55, Math.min(1.8, s));
 
-    groupRef.current.position.y = 0;
-    groupRef.current.scale.set(uniformScale, uniformScale, uniformScale);
+    groupRef.current.position.set(x, 0, z);
+    groupRef.current.rotation.set(0, ry, 0);
+    groupRef.current.scale.set(s, s, s);
 
-    setSofaState((prev) => ({
-      ...prev,
-      position: [px, 0, pz],
+    setSofaState({
+      position: [x, 0, z],
       rotationY: ry,
-      scale: uniformScale,
-    }));
+      scale: Number(s.toFixed(2)),
+    });
   };
+
+  const axisProps =
+    transformMode === "translate"
+      ? { showX: true, showY: false, showZ: true }
+      : transformMode === "rotate"
+      ? { showX: false, showY: true, showZ: false }
+      : { showX: true, showY: false, showZ: true };
 
   return (
     <>
@@ -214,21 +234,20 @@ function SofaObject({
           setSelected(true);
         }}
       >
-        {/* floor shadow */}
         <mesh
           rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, 0.015, 0.15]}
+          position={[0, 0.012, 0.1]}
           receiveShadow
+          renderOrder={1}
         >
-          <circleGeometry args={[1.5, 40]} />
+          <planeGeometry args={[width * sofa.shadowScaleX, width * sofa.shadowScaleZ]} />
           <meshStandardMaterial color="#000000" transparent opacity={0.18} />
         </mesh>
 
-        {/* layered image sofa - bottom touches floor */}
         {layerOffsets.map((zOffset, index) => (
           <mesh
             key={index}
-            position={[0, height / 2, -zOffset]}
+            position={[0, visualLift, -zOffset]}
             castShadow
             receiveShadow
           >
@@ -237,44 +256,47 @@ function SofaObject({
               map={texture}
               transparent
               alphaTest={0.08}
-              opacity={index === 0 ? 1 : 0.12}
+              opacity={index === 0 ? 1 : 0.14}
               depthWrite={index === 0}
               side={THREE.DoubleSide}
             />
           </mesh>
         ))}
 
-        {/* base depth feel */}
-        <mesh position={[0, 0.18, -0.2]} castShadow receiveShadow>
-          <boxGeometry args={[width * 0.78, 0.1, 0.48]} />
-          <meshStandardMaterial color="#858b93" transparent opacity={0.3} />
+        <mesh position={[0, 0.06, -0.18]} castShadow receiveShadow>
+          <boxGeometry args={[width * 0.72, 0.06, 0.42]} />
+          <meshStandardMaterial color="#7d8087" transparent opacity={0.22} />
         </mesh>
 
-        {/* side fade planes */}
         <mesh
-          position={[-width / 2 + 0.08, height / 2, -0.12]}
+          position={[-width / 2 + 0.05, visualLift, -0.12]}
           rotation={[0, Math.PI / 2, 0]}
         >
-          <planeGeometry args={[0.34, height * 0.88]} />
+          <planeGeometry args={[0.28, height * 0.78]} />
           <meshStandardMaterial
-            color="#6b7280"
+            color="#666b73"
             transparent
-            opacity={0.2}
+            opacity={0.16}
             side={THREE.DoubleSide}
           />
         </mesh>
 
         <mesh
-          position={[width / 2 - 0.08, height / 2, -0.12]}
+          position={[width / 2 - 0.05, visualLift, -0.12]}
           rotation={[0, -Math.PI / 2, 0]}
         >
-          <planeGeometry args={[0.34, height * 0.88]} />
+          <planeGeometry args={[0.28, height * 0.78]} />
           <meshStandardMaterial
-            color="#6b7280"
+            color="#666b73"
             transparent
-            opacity={0.2}
+            opacity={0.16}
             side={THREE.DoubleSide}
           />
+        </mesh>
+
+        <mesh position={[0, visualLift, -0.05]} visible={false}>
+          <boxGeometry args={[width, height, 0.4]} />
+          <meshBasicMaterial transparent opacity={0} />
         </mesh>
       </group>
 
@@ -282,15 +304,17 @@ function SofaObject({
         <TransformControls
           object={groupRef.current}
           mode={transformMode}
-          showY={false}
+          size={0.9}
+          space="local"
+          {...axisProps}
           onMouseDown={() => {
             if (orbitRef.current) orbitRef.current.enabled = false;
           }}
           onMouseUp={() => {
             if (orbitRef.current) orbitRef.current.enabled = true;
-            syncTransform();
+            clampAndSave();
           }}
-          onObjectChange={syncTransform}
+          onObjectChange={clampAndSave}
         />
       )}
     </>
@@ -314,9 +338,8 @@ function LivingRoomScene({
     >
       <Suspense fallback={null}>
         <RoomShell />
-
         <SofaObject
-          imagePath={selectedSofa.imagePath}
+          sofa={selectedSofa}
           sofaState={sofaState}
           setSofaState={setSofaState}
           selected={selected}
@@ -328,7 +351,7 @@ function LivingRoomScene({
 
       <OrbitControls
         ref={orbitRef}
-        target={[0, 1.1, 0]}
+        target={[0, 1.05, 0]}
         minDistance={4.5}
         maxDistance={15}
         maxPolarAngle={Math.PI / 2.02}
@@ -405,10 +428,9 @@ function LivingRoomView({
           </div>
 
           <div className="helper-bar">
-            <span>Click the sofa to select it.</span>
-            <span>Move = drag anywhere on floor.</span>
-            <span>Rotate = natural circular rotation gizmo.</span>
-            <span>Resize = scale the sofa bigger or smaller.</span>
+            <span>Move: drag on floor</span>
+            <span>Rotate: use the circular Y-axis handle</span>
+            <span>Resize: scale bigger or smaller</span>
           </div>
         </div>
 
@@ -467,6 +489,10 @@ export default function App() {
 
   const handleChangeSofa = (sofa) => {
     setSelectedSofa(sofa);
+    setSofaState((prev) => ({
+      ...prev,
+      scale: 1,
+    }));
   };
 
   return (
