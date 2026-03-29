@@ -11,6 +11,7 @@ const ITEM_LABELS = {
 };
 
 const ANGLES = ["front", "left", "right"];
+
 const MIN_SIZE = {
   sofa: { width: 180, height: 90 },
   center_table: { width: 95, height: 55 },
@@ -42,6 +43,11 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ budget, room: "Living Room", style }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Generate failed: ${res.status}`);
+      }
+
       const data = await res.json();
       setDesign(data);
       setSelectedItem(data.items?.[0] || null);
@@ -60,11 +66,17 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ budget }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Regenerate failed: ${res.status}`);
+      }
+
       const data = await res.json();
       setDesign(data);
       setSelectedItem(data.items?.[0] || null);
     } catch (e) {
       console.error(e);
+      alert("Failed to regenerate design");
     }
   };
 
@@ -75,6 +87,11 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemType, design, budget }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Regenerate item failed: ${res.status}`);
+      }
+
       const data = await res.json();
       setDesign(data);
       const updated = data.items.find((x) => x.type === itemType);
@@ -82,6 +99,7 @@ function App() {
       if (detailItem?.type === itemType) setDetailItem(updated);
     } catch (e) {
       console.error(e);
+      alert("Failed to regenerate item");
     }
   };
 
@@ -92,10 +110,29 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemType, design, budget }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Remove item failed: ${res.status}`);
+      }
+
       const data = await res.json();
       setDesign(data);
+
       if (selectedItem?.type === itemType) setSelectedItem(null);
       if (detailItem?.type === itemType) setDetailItem(null);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to remove item");
+    }
+  };
+
+  const persistLayout = async (nextDesign) => {
+    try {
+      await fetch(`${API_URL}/update-layout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ design: nextDesign, budget }),
+      });
     } catch (e) {
       console.error(e);
     }
@@ -105,6 +142,7 @@ function App() {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     setDragItemId(item.id);
+    setResizeItemId(null);
     setSelectedItem(item);
     setDragOffset({
       x: e.clientX - rect.left,
@@ -115,11 +153,13 @@ function App() {
   const handleResizeStart = (e, item) => {
     e.stopPropagation();
     setResizeItemId(item.id);
+    setDragItemId(null);
     setSelectedItem(item);
   };
 
   const handleRoomMove = (e, scale = 1) => {
     if ((!dragItemId && !resizeItemId) || !design) return;
+
     const roomRect = e.currentTarget.getBoundingClientRect();
 
     setDesign((prev) => ({
@@ -151,15 +191,17 @@ function App() {
 
         if (resizeItemId && item.id === resizeItemId) {
           const pos = item.positions[currentAngle];
-          const nextWidth = (e.clientX - roomRect.left - pos.x * scale) / scale;
-          const ratio = pos.height / pos.width;
           const minW = MIN_SIZE[item.type]?.width || 80;
-          const maxW = item.type === "sofa" ? 380 : item.type === "tv_stand" ? 250 : 190;
-          const safeWidth = Math.max(minW, Math.min(nextWidth, maxW));
-          const safeHeight = Math.max(
-            MIN_SIZE[item.type]?.height || 50,
-            safeWidth * ratio
-          );
+          const minH = MIN_SIZE[item.type]?.height || 50;
+
+          const rawWidth = (e.clientX - roomRect.left - pos.x * scale) / scale;
+          const rawHeight = (e.clientY - roomRect.top - pos.y * scale) / scale;
+
+          const maxWidthByRoom = roomRect.width / scale - pos.x - 10;
+          const maxHeightByRoom = roomRect.height / scale - pos.y - 10;
+
+          const finalWidth = Math.max(minW, Math.min(rawWidth, maxWidthByRoom));
+          const finalHeight = Math.max(minH, Math.min(rawHeight, maxHeightByRoom));
 
           return {
             ...item,
@@ -167,8 +209,8 @@ function App() {
               ...item.positions,
               [currentAngle]: {
                 ...pos,
-                width: safeWidth,
-                height: safeHeight,
+                width: finalWidth,
+                height: finalHeight,
               },
             },
           };
@@ -181,18 +223,12 @@ function App() {
 
   const handleMouseEnd = async () => {
     if ((!dragItemId && !resizeItemId) || !design) return;
+
+    const latestDesign = design;
     setDragItemId(null);
     setResizeItemId(null);
 
-    try {
-      await fetch(`${API_URL}/update-layout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ design, budget }),
-      });
-    } catch (e) {
-      console.error(e);
-    }
+    await persistLayout(latestDesign);
   };
 
   const renderRoomScene = () => (
@@ -226,6 +262,7 @@ function App() {
 
   const renderRoom = (large = false) => {
     if (!design) return null;
+
     const scale = large ? 1 : 0.62;
 
     return (
