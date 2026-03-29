@@ -417,4 +417,9 @@ img {
   .regen-full-button {
     font-size: 18px;
   }
+  .tool-active {
+  background: #0f172a !important;
+  color: white !important;
+  border-color: #0f172a !important;
+}
 }

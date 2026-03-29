@@ -1,6 +1,6 @@
 import React, { Suspense, useMemo, useRef, useState } from "react";
 import { Canvas, useLoader } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, TransformControls } from "@react-three/drei";
 import * as THREE from "three";
 import "./App.css";
 
@@ -76,6 +76,7 @@ function RoomShell() {
       />
       <directionalLight position={[-5, 5, -3]} intensity={0.35} />
 
+      {/* Floor */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, 0]}
@@ -85,6 +86,7 @@ function RoomShell() {
         <meshStandardMaterial color="#dec8a8" />
       </mesh>
 
+      {/* Rug */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[-0.4, 0.01, 0.4]}
@@ -94,6 +96,7 @@ function RoomShell() {
         <meshStandardMaterial color="#d8d0f0" />
       </mesh>
 
+      {/* Walls */}
       <mesh position={[0, 2.6, -5.3]} receiveShadow>
         <boxGeometry args={[14, 5.2, 0.2]} />
         <meshStandardMaterial color="#eee9e1" />
@@ -109,6 +112,7 @@ function RoomShell() {
         <meshStandardMaterial color="#f7f2eb" />
       </mesh>
 
+      {/* Window */}
       <mesh position={[-5.8, 2.2, -2.7]}>
         <boxGeometry args={[0.12, 1.7, 1.6]} />
         <meshStandardMaterial color="#ffffff" />
@@ -119,6 +123,7 @@ function RoomShell() {
         <meshStandardMaterial color="#cfe7ff" />
       </mesh>
 
+      {/* Plant */}
       <group position={[5.2, 0, 2.2]}>
         <mesh position={[0, 0.3, 0]}>
           <cylinderGeometry args={[0.24, 0.24, 0.6, 24]} />
@@ -155,93 +160,201 @@ function useSofaTexture(path) {
   return texture;
 }
 
-function SofaImage3D({
+function SofaObject({
   imagePath,
-  position = [-2.2, 0, 0.4],
-  rotationY = 0.12,
-  width = 2.8,
-  height = 1.65,
-  layers = 7,
-  depthStep = 0.018,
+  sofaState,
+  setSofaState,
+  selected,
+  setSelected,
+  transformMode,
+  orbitRef,
 }) {
   const texture = useSofaTexture(imagePath);
   const groupRef = useRef(null);
 
+  const width = 2.8;
+  const height = 1.65;
+  const layers = 7;
+  const depthStep = 0.018;
+
   const layerOffsets = useMemo(() => {
     return Array.from({ length: layers }, (_, i) => i * depthStep);
-  }, [layers, depthStep]);
+  }, [layers]);
+
+  const syncTransform = () => {
+    if (!groupRef.current) return;
+
+    const px = Number(groupRef.current.position.x.toFixed(2));
+    const pz = Number(groupRef.current.position.z.toFixed(2));
+    const ry = Number(groupRef.current.rotation.y.toFixed(2));
+
+    const sx = groupRef.current.scale.x;
+    const uniformScale = Number(Math.max(0.45, Math.min(2.2, sx)).toFixed(2));
+
+    groupRef.current.position.y = 0;
+    groupRef.current.scale.set(uniformScale, uniformScale, uniformScale);
+
+    setSofaState((prev) => ({
+      ...prev,
+      position: [px, 0, pz],
+      rotationY: ry,
+      scale: uniformScale,
+    }));
+  };
 
   return (
-    <group ref={groupRef} position={position} rotation={[0, rotationY, 0]}>
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.02, 0.15]}
-        receiveShadow
+    <>
+      <group
+        ref={groupRef}
+        position={sofaState.position}
+        rotation={[0, sofaState.rotationY, 0]}
+        scale={[sofaState.scale, sofaState.scale, sofaState.scale]}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelected(true);
+        }}
       >
-        <circleGeometry args={[1.45, 40]} />
-        <meshStandardMaterial color="#000000" transparent opacity={0.16} />
-      </mesh>
-
-      {layerOffsets.map((zOffset, index) => (
+        {/* floor shadow */}
         <mesh
-          key={index}
-          position={[0, height / 2, -zOffset]}
-          castShadow
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, 0.015, 0.15]}
           receiveShadow
         >
-          <planeGeometry args={[width, height]} />
+          <circleGeometry args={[1.5, 40]} />
+          <meshStandardMaterial color="#000000" transparent opacity={0.18} />
+        </mesh>
+
+        {/* layered image sofa - bottom touches floor */}
+        {layerOffsets.map((zOffset, index) => (
+          <mesh
+            key={index}
+            position={[0, height / 2, -zOffset]}
+            castShadow
+            receiveShadow
+          >
+            <planeGeometry args={[width, height]} />
+            <meshStandardMaterial
+              map={texture}
+              transparent
+              alphaTest={0.08}
+              opacity={index === 0 ? 1 : 0.12}
+              depthWrite={index === 0}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        ))}
+
+        {/* base depth feel */}
+        <mesh position={[0, 0.18, -0.2]} castShadow receiveShadow>
+          <boxGeometry args={[width * 0.78, 0.1, 0.48]} />
+          <meshStandardMaterial color="#858b93" transparent opacity={0.3} />
+        </mesh>
+
+        {/* side fade planes */}
+        <mesh
+          position={[-width / 2 + 0.08, height / 2, -0.12]}
+          rotation={[0, Math.PI / 2, 0]}
+        >
+          <planeGeometry args={[0.34, height * 0.88]} />
           <meshStandardMaterial
-            map={texture}
+            color="#6b7280"
             transparent
-            alphaTest={0.08}
-            opacity={index === 0 ? 1 : 0.12}
-            depthWrite={index === 0}
+            opacity={0.2}
             side={THREE.DoubleSide}
           />
         </mesh>
-      ))}
 
-      <mesh position={[0, 0.22, -0.22]} castShadow receiveShadow>
-        <boxGeometry args={[width * 0.78, 0.12, 0.5]} />
-        <meshStandardMaterial color="#8b8f97" transparent opacity={0.32} />
-      </mesh>
+        <mesh
+          position={[width / 2 - 0.08, height / 2, -0.12]}
+          rotation={[0, -Math.PI / 2, 0]}
+        >
+          <planeGeometry args={[0.34, height * 0.88]} />
+          <meshStandardMaterial
+            color="#6b7280"
+            transparent
+            opacity={0.2}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      </group>
 
-      <mesh
-        position={[-width / 2 + 0.08, height / 2, -0.13]}
-        rotation={[0, Math.PI / 2, 0]}
-      >
-        <planeGeometry args={[0.34, height * 0.88]} />
-        <meshStandardMaterial
-          color="#6b7280"
-          transparent
-          opacity={0.2}
-          side={THREE.DoubleSide}
+      {selected && groupRef.current && (
+        <TransformControls
+          object={groupRef.current}
+          mode={transformMode}
+          showY={false}
+          onMouseDown={() => {
+            if (orbitRef.current) orbitRef.current.enabled = false;
+          }}
+          onMouseUp={() => {
+            if (orbitRef.current) orbitRef.current.enabled = true;
+            syncTransform();
+          }}
+          onObjectChange={syncTransform}
         />
-      </mesh>
-
-      <mesh
-        position={[width / 2 - 0.08, height / 2, -0.13]}
-        rotation={[0, -Math.PI / 2, 0]}
-      >
-        <planeGeometry args={[0.34, height * 0.88]} />
-        <meshStandardMaterial
-          color="#6b7280"
-          transparent
-          opacity={0.2}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-    </group>
+      )}
+    </>
   );
 }
-function LivingRoomView({ selectedSofa, onChangeSofa, budget, onBack }) {
+function LivingRoomScene({
+  selectedSofa,
+  sofaState,
+  setSofaState,
+  transformMode,
+  selected,
+  setSelected,
+}) {
+  const orbitRef = useRef(null);
+
+  return (
+    <Canvas
+      shadows
+      camera={{ position: [6.8, 4.8, 8.2], fov: 42 }}
+      onPointerMissed={() => setSelected(false)}
+    >
+      <Suspense fallback={null}>
+        <RoomShell />
+
+        <SofaObject
+          imagePath={selectedSofa.imagePath}
+          sofaState={sofaState}
+          setSofaState={setSofaState}
+          selected={selected}
+          setSelected={setSelected}
+          transformMode={transformMode}
+          orbitRef={orbitRef}
+        />
+      </Suspense>
+
+      <OrbitControls
+        ref={orbitRef}
+        target={[0, 1.1, 0]}
+        minDistance={4.5}
+        maxDistance={15}
+        maxPolarAngle={Math.PI / 2.02}
+      />
+    </Canvas>
+  );
+}
+
+function LivingRoomView({
+  selectedSofa,
+  onChangeSofa,
+  budget,
+  onBack,
+  sofaState,
+  setSofaState,
+}) {
+  const [transformMode, setTransformMode] = useState("translate");
+  const [selected, setSelected] = useState(true);
+
   return (
     <div className="workspace-page">
       <div className="workspace-topbar">
         <div>
           <div className="workspace-title">Living Room Concept</div>
           <div className="workspace-subtitle">
-            Testing real sofa images in the room with a layered depth effect.
+            Click the sofa, then move, rotate, or resize it naturally inside the room.
           </div>
         </div>
 
@@ -256,29 +369,46 @@ function LivingRoomView({ selectedSofa, onChangeSofa, budget, onBack }) {
       <div className="workspace-body">
         <div className="workspace-left">
           <div className="tool-row">
+            <button
+              className={transformMode === "translate" ? "tool-active" : ""}
+              onClick={() => setTransformMode("translate")}
+            >
+              Move
+            </button>
+
+            <button
+              className={transformMode === "rotate" ? "tool-active" : ""}
+              onClick={() => setTransformMode("rotate")}
+            >
+              Rotate
+            </button>
+
+            <button
+              className={transformMode === "scale" ? "tool-active" : ""}
+              onClick={() => setTransformMode("scale")}
+            >
+              Resize
+            </button>
+
             <button onClick={onBack}>Back</button>
           </div>
 
           <div className="viewer-frame">
-            <Canvas shadows camera={{ position: [6.8, 4.8, 8.2], fov: 42 }}>
-              <Suspense fallback={null}>
-                <RoomShell />
-                <SofaImage3D imagePath={selectedSofa.imagePath} />
-              </Suspense>
-
-              <OrbitControls
-                target={[0, 1.1, 0]}
-                minDistance={4.5}
-                maxDistance={15}
-                maxPolarAngle={Math.PI / 2.02}
-              />
-            </Canvas>
+            <LivingRoomScene
+              selectedSofa={selectedSofa}
+              sofaState={sofaState}
+              setSofaState={setSofaState}
+              transformMode={transformMode}
+              selected={selected}
+              setSelected={setSelected}
+            />
           </div>
 
           <div className="helper-bar">
-            <span>Testing with your real sofa images.</span>
-            <span>Next we can add coffee table and TV table.</span>
-            <span>Rotate the room to see how natural it feels.</span>
+            <span>Click the sofa to select it.</span>
+            <span>Move = drag anywhere on floor.</span>
+            <span>Rotate = natural circular rotation gizmo.</span>
+            <span>Resize = scale the sofa bigger or smaller.</span>
           </div>
         </div>
 
@@ -304,15 +434,40 @@ function LivingRoomView({ selectedSofa, onChangeSofa, budget, onBack }) {
               </div>
             </div>
           ))}
+
+          <div className="selection-panel">
+            <div className="selection-heading">Current Sofa State</div>
+            <div className="selection-title">{selectedSofa.name}</div>
+            <div className="selection-meta">
+              Position: x {sofaState.position[0]}, z {sofaState.position[2]}
+            </div>
+            <div className="selection-meta">
+              Rotation: {sofaState.rotationY}
+            </div>
+            <div className="selection-meta">
+              Scale: {sofaState.scale}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 export default function App() {
   const [page, setPage] = useState("setup");
   const [budget, setBudget] = useState(2000);
   const [selectedSofa, setSelectedSofa] = useState(SOFA_OPTIONS[0]);
+
+  const [sofaState, setSofaState] = useState({
+    position: [-2.2, 0, 0.4],
+    rotationY: 0.12,
+    scale: 1,
+  });
+
+  const handleChangeSofa = (sofa) => {
+    setSelectedSofa(sofa);
+  };
 
   return (
     <div className="app-shell">
@@ -325,9 +480,11 @@ export default function App() {
       ) : (
         <LivingRoomView
           selectedSofa={selectedSofa}
-          onChangeSofa={setSelectedSofa}
+          onChangeSofa={handleChangeSofa}
           budget={budget}
           onBack={() => setPage("setup")}
+          sofaState={sofaState}
+          setSofaState={setSofaState}
         />
       )}
     </div>
