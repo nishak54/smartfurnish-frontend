@@ -15,30 +15,23 @@ body {
 }
 
 .sidebar {
-  width: 320px;
+  width: 340px;
   background: #ffffff;
   padding: 24px;
   border-right: 1px solid #e5e7eb;
-  overflow-y: auto;
 }
 
 .sidebar h1 {
   margin-top: 0;
   margin-bottom: 20px;
-  font-size: 36px;
+  font-size: 34px;
   color: #111827;
-}
-
-.selected {
-  font-size: 18px;
-  color: #1f2937;
-  margin-bottom: 24px;
 }
 
 .panel {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 18px;
 }
@@ -46,17 +39,12 @@ body {
 .panel h3 {
   margin-top: 0;
   color: #111827;
+}
+
+.selected {
   font-size: 18px;
-}
-
-.panel ul {
-  padding-left: 20px;
-  margin-bottom: 0;
-}
-
-.panel p {
-  margin: 8px 0;
-  color: #374151;
+  color: #1f2937;
+  margin-bottom: 10px;
 }
 
 .viewer {
