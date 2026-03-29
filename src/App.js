@@ -152,10 +152,38 @@ function App() {
     }
   };
 
+  const renderRoomScene = () => (
+    <>
+      <div className={`room-wall room-wall-${currentAngle}`} />
+      <div className={`room-wall-panel panel-left-${currentAngle}`} />
+      <div className={`room-wall-panel panel-right-${currentAngle}`} />
+      <div className={`room-floor room-floor-${currentAngle}`} />
+      <div className={`room-rug room-rug-${currentAngle}`} />
+      <div className={`room-window room-window-${currentAngle}`}>
+        <div className="window-cross-x" />
+        <div className="window-cross-y" />
+      </div>
+      <div className={`room-tv-frame room-tv-frame-${currentAngle}`}>
+        <div className="room-tv-screen" />
+      </div>
+      <div className={`room-console console-${currentAngle}`} />
+      <div className={`room-plant room-plant-${currentAngle}`}>
+        <span className="room-plant-pot" />
+        <span className="room-plant-leaf leaf-1" />
+        <span className="room-plant-leaf leaf-2" />
+        <span className="room-plant-leaf leaf-3" />
+      </div>
+      <div className={`room-lamp room-lamp-${currentAngle}`}>
+        <span className="lamp-head" />
+        <span className="lamp-rod" />
+        <span className="lamp-base" />
+      </div>
+    </>
+  );
+
   const renderRoom = (large = false) => {
     if (!design) return null;
-    const scale = large ? 1 : 0.58;
-    const bg = design.room.angles[currentAngle];
+    const scale = large ? 1 : 0.62;
 
     return (
       <div
@@ -171,7 +199,7 @@ function App() {
         onMouseUp={handleDragEnd}
         onMouseLeave={handleDragEnd}
       >
-        <img className="room-bg" src={bg} alt={`Living room ${currentAngle}`} />
+        {renderRoomScene()}
 
         {design.items.map((item) => {
           const pos = item.positions[currentAngle];
@@ -195,7 +223,15 @@ function App() {
               }}
               onMouseDown={(e) => handleDragStart(e, item)}
             >
-              <img src={item.images[currentAngle]} alt={item.name} draggable={false} />
+              <div className="item-shadow" />
+              <img
+                src={item.images[currentAngle] || item.images.front}
+                alt={item.name}
+                draggable={false}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
 
               <div className="item-toolbar">
                 <button
@@ -233,7 +269,7 @@ function App() {
           <div className="hero-badge">SmartFurnish</div>
           <h1>Design your living room within budget</h1>
           <p className="hero-sub">
-            Generate a cleaner, visual room layout with realistic items.
+            A generated living room scene with your furniture images placed inside it.
           </p>
 
           <div className="field">
@@ -333,7 +369,13 @@ function App() {
                     onClick={() => setSelectedItem(item)}
                   >
                     <div className="product-thumb">
-                      <img src={item.images.front} alt={item.name} />
+                      <img
+                        src={item.images.front}
+                        alt={item.name}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
                     </div>
 
                     <div className="product-info">
@@ -411,7 +453,13 @@ function App() {
                     {design.items.map((item) => (
                       <div key={item.id} className="editor-item-card">
                         <div className="editor-item-top">
-                          <img src={item.images.front} alt={item.name} />
+                          <img
+                            src={item.images.front}
+                            alt={item.name}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
                           <div>
                             <div className="product-type">{ITEM_LABELS[item.type]}</div>
                             <div className="editor-item-name">{item.name}</div>
@@ -463,7 +511,13 @@ function App() {
 
                 <div className="details-grid">
                   <div className="details-image-wrap">
-                    <img src={detailItem.images.front} alt={detailItem.name} />
+                    <img
+                      src={detailItem.images.front}
+                      alt={detailItem.name}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
                   </div>
 
                   <div className="details-info">
@@ -487,5 +541,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
