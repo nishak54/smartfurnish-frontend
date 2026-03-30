@@ -76,8 +76,8 @@ const TABLE_OPTIONS = [
     name: "Center Table 1",
     price: 220,
     imagePath: "/assets/items/tables/table1.webp",
-    width: 3.6,
-    height: 1.6,
+    width: 3.9,
+    height: 1.8,
     minScale: 0.8,
     maxScale: 2.2,
     details: {
@@ -94,8 +94,8 @@ const TABLE_OPTIONS = [
     name: "Center Table 2",
     price: 260,
     imagePath: "/assets/items/tables/table2.webp",
-    width: 3.6,
-    height: 1.6,
+    width: 3.9,
+    height: 1.8,
     minScale: 0.8,
     maxScale: 2.2,
     details: {
@@ -112,8 +112,8 @@ const TABLE_OPTIONS = [
     name: "Center Table 3",
     price: 310,
     imagePath: "/assets/items/tables/table3.webp",
-    width: 3.6,
-    height: 1.6,
+    width: 3.9,
+    height: 1.8,
     minScale: 0.8,
     maxScale: 2.2,
     details: {
@@ -126,6 +126,96 @@ const TABLE_OPTIONS = [
     },
   },
 ];
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function normalizeAngle(angle) {
+  let a = angle % (Math.PI * 2);
+  if (a > Math.PI) a -= Math.PI * 2;
+  if (a < -Math.PI) a += Math.PI * 2;
+  return a;
+}
+
+function snapRotationY(angle) {
+  const snaps = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+  let best = snaps[0];
+  let minDiff = Infinity;
+
+  for (const candidate of snaps) {
+    const diff = Math.abs(normalizeAngle(angle - candidate));
+    if (diff < minDiff) {
+      minDiff = diff;
+      best = candidate;
+    }
+  }
+
+  return minDiff < 0.22 ? best : angle;
+}
+
+function getFootprint(item, scale, rotationY) {
+  const snapped = snapRotationY(rotationY);
+  const isSideways =
+    Math.abs(Math.abs(normalizeAngle(snapped)) - Math.PI / 2) < 0.01;
+
+  const baseWidth = item.width;
+  const baseDepth = item.id.startsWith("sofa") ? 1.45 : 1.05;
+
+  return {
+    width: (isSideways ? baseDepth : baseWidth) * scale,
+    depth: (isSideways ? baseWidth : baseDepth) * scale,
+  };
+}
+
+function snapToWalls(position, item, scale, rotationY) {
+  const wallGap = item.id.startsWith("sofa") ? 0.22 : 0.18;
+  const snapThreshold = 0.45;
+  const { width, depth } = getFootprint(item, scale, rotationY);
+
+  let [x, , z] = position;
+
+  const minX = ROOM.leftWallX + width / 2 + wallGap;
+  const maxX = ROOM.rightWallX - width / 2 - wallGap;
+  const minZ = ROOM.backWallZ + depth / 2 + wallGap;
+  const maxZ = ROOM.frontLimitZ - depth / 2 - wallGap;
+
+  x = clamp(x, minX, maxX);
+  z = clamp(z, minZ, maxZ);
+
+  if (Math.abs(x - minX) < snapThreshold) x = minX;
+  if (Math.abs(x - maxX) < snapThreshold) x = maxX;
+  if (Math.abs(z - minZ) < snapThreshold) z = minZ;
+  if (Math.abs(z - maxZ) < snapThreshold) z = maxZ;
+
+  return [Number(x.toFixed(2)), 0, Number(z.toFixed(2))];
+}
+
+function getDefaultLayout() {
+  return {
+    sofa: {
+      position: [0, 0, -1.7],
+      rotationY: 0,
+      scale: 1.28,
+    },
+    table: {
+      position: [0, 0, 0.45],
+      rotationY: 0,
+      scale: 1.25,
+    },
+  };
+}
+
+function useItemTexture(path) {
+  const texture = useLoader(THREE.TextureLoader, path);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  return texture;
+}
 
 function SetupPage({ budget, setBudget, onGenerate }) {
   return (
@@ -214,21 +304,6 @@ function RoomDecor() {
           <meshStandardMaterial color="#84a59d" />
         </mesh>
       </group>
-
-      <group position={[-4.8, 0, -1.8]}>
-        <mesh position={[0, 0.34, 0]}>
-          <cylinderGeometry args={[0.16, 0.12, 0.68, 24]} />
-          <meshStandardMaterial color="#ddd6fe" />
-        </mesh>
-        <mesh position={[0.05, 0.84, 0]}>
-          <capsuleGeometry args={[0.05, 0.42, 4, 8]} />
-          <meshStandardMaterial color="#7fb069" />
-        </mesh>
-        <mesh position={[-0.06, 0.9, 0.04]}>
-          <capsuleGeometry args={[0.04, 0.32, 4, 8]} />
-          <meshStandardMaterial color="#6aa84f" />
-        </mesh>
-      </group>
     </>
   );
 }
@@ -237,7 +312,6 @@ function RoomShell() {
   return (
     <>
       <color attach="background" args={["#eef2f7"]} />
-
       <ambientLight intensity={1.0} />
       <directionalLight position={[5, 8, 8]} intensity={1.0} />
       <directionalLight position={[-5, 5, -3]} intensity={0.18} />
@@ -280,96 +354,6 @@ function RoomShell() {
       <RoomDecor />
     </>
   );
-}
-
-function useItemTexture(path) {
-  const texture = useLoader(THREE.TextureLoader, path);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  return texture;
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function normalizeAngle(angle) {
-  let a = angle % (Math.PI * 2);
-  if (a > Math.PI) a -= Math.PI * 2;
-  if (a < -Math.PI) a += Math.PI * 2;
-  return a;
-}
-
-function snapRotationY(angle) {
-  const snaps = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
-  let best = snaps[0];
-  let minDiff = Infinity;
-
-  for (const candidate of snaps) {
-    const diff = Math.abs(normalizeAngle(angle - candidate));
-    if (diff < minDiff) {
-      minDiff = diff;
-      best = candidate;
-    }
-  }
-
-  return minDiff < 0.22 ? best : angle;
-}
-
-function getFootprint(item, scale, rotationY) {
-  const snapped = snapRotationY(rotationY);
-  const isSideways =
-    Math.abs(Math.abs(normalizeAngle(snapped)) - Math.PI / 2) < 0.01;
-
-  const baseWidth = item.width;
-  const baseDepth = item.id.startsWith("sofa") ? 1.45 : 1.05;
-
-  return {
-    width: (isSideways ? baseDepth : baseWidth) * scale,
-    depth: (isSideways ? baseWidth : baseDepth) * scale,
-  };
-}
-
-function snapToWalls(position, item, scale, rotationY) {
-  const wallGap = item.id.startsWith("sofa") ? 0.22 : 0.18;
-  const snapThreshold = 0.45;
-  const { width, depth } = getFootprint(item, scale, rotationY);
-
-  let [x, , z] = position;
-
-  const minX = ROOM.leftWallX + width / 2 + wallGap;
-  const maxX = ROOM.rightWallX - width / 2 - wallGap;
-  const minZ = ROOM.backWallZ + depth / 2 + wallGap;
-  const maxZ = ROOM.frontLimitZ - depth / 2 - wallGap;
-
-  x = clamp(x, minX, maxX);
-  z = clamp(z, minZ, maxZ);
-
-  if (Math.abs(x - minX) < snapThreshold) x = minX;
-  if (Math.abs(x - maxX) < snapThreshold) x = maxX;
-  if (Math.abs(z - minZ) < snapThreshold) z = minZ;
-  if (Math.abs(z - maxZ) < snapThreshold) z = maxZ;
-
-  return [Number(x.toFixed(2)), 0, Number(z.toFixed(2))];
-}
-
-function getDefaultLayout() {
-  return {
-    sofa: {
-      position: [0, 0, -1.7],
-      rotationY: 0,
-      scale: 1.28,
-    },
-    table: {
-      position: [0, 0, 0.45],
-      rotationY: 0,
-      scale: 1.25,
-    },
-  };
 }
 
 function ItemObject({
@@ -473,12 +457,17 @@ function LivingRoomScene({
   transformMode,
   selectedId,
   setSelectedId,
+  isFullscreen = false,
 }) {
   const orbitRef = useRef(null);
 
   return (
     <Canvas
-      camera={{ position: [0, 3.9, 9.4], fov: 38 }}
+      camera={
+        isFullscreen
+          ? { position: [0, 3.4, 8.4], fov: 34 }
+          : { position: [0, 3.9, 9.4], fov: 38 }
+      }
       onPointerMissed={() => setSelectedId(null)}
     >
       <Suspense fallback={null}>
@@ -508,8 +497,8 @@ function LivingRoomScene({
       <OrbitControls
         ref={orbitRef}
         target={[0, 1.15, 0]}
-        minDistance={5.2}
-        maxDistance={16}
+        minDistance={isFullscreen ? 4.5 : 5.2}
+        maxDistance={18}
         maxPolarAngle={Math.PI / 2.03}
       />
     </Canvas>
@@ -553,27 +542,22 @@ function ProductCard({ item, active, label, onUse }) {
                 <span className="detail-key">Rating</span>
                 <span className="detail-value">⭐ {item.details.rating}</span>
               </div>
-
               <div className="product-detail-item">
                 <span className="detail-key">Purchases</span>
                 <span className="detail-value">{item.details.purchases}</span>
               </div>
-
               <div className="product-detail-item">
                 <span className="detail-key">Material</span>
                 <span className="detail-value">{item.details.material}</span>
               </div>
-
               <div className="product-detail-item">
                 <span className="detail-key">Stock</span>
                 <span className="detail-value">{item.details.inStock}</span>
               </div>
-
               <div className="product-detail-item">
                 <span className="detail-key">Condition</span>
                 <span className="detail-value">{item.details.condition}</span>
               </div>
-
               <div className="product-detail-item product-detail-item-full">
                 <span className="detail-key">Dimensions</span>
                 <span className="detail-value">{item.details.dimensions}</span>
@@ -581,6 +565,93 @@ function ProductCard({ item, active, label, onUse }) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function OptionSection({ title, items, activeId, label, onUse }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="option-section">
+      <button className="option-section-header" onClick={() => setOpen((v) => !v)}>
+        <span>{title}</span>
+        <span>{open ? "−" : "+"}</span>
+      </button>
+
+      {open && (
+        <div className="option-section-body">
+          {items.map((item) => (
+            <ProductCard
+              key={item.id}
+              item={item}
+              active={activeId === item.id}
+              label={label}
+              onUse={onUse}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FullscreenViewer({
+  open,
+  onClose,
+  selectedSofa,
+  selectedTable,
+  sofaState,
+  setSofaState,
+  tableState,
+  setTableState,
+}) {
+  const [selectedId, setSelectedId] = useState(selectedSofa.id);
+  const [transformMode, setTransformMode] = useState("translate");
+
+  if (!open) return null;
+
+  return (
+    <div className="fullscreen-overlay">
+      <div className="fullscreen-topbar">
+        <div className="fullscreen-title">Expanded Layout View</div>
+        <div className="fullscreen-actions">
+          <button
+            className={transformMode === "translate" ? "tool-active" : ""}
+            onClick={() => setTransformMode("translate")}
+          >
+            Move
+          </button>
+          <button
+            className={transformMode === "rotate" ? "tool-active" : ""}
+            onClick={() => setTransformMode("rotate")}
+          >
+            Rotate
+          </button>
+          <button
+            className={transformMode === "scale" ? "tool-active" : ""}
+            onClick={() => setTransformMode("scale")}
+          >
+            Resize
+          </button>
+          <button onClick={onClose}>Close</button>
+        </div>
+      </div>
+
+      <div className="fullscreen-canvas">
+        <LivingRoomScene
+          selectedSofa={selectedSofa}
+          selectedTable={selectedTable}
+          sofaState={sofaState}
+          setSofaState={setSofaState}
+          tableState={tableState}
+          setTableState={setTableState}
+          transformMode={transformMode}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          isFullscreen={true}
+        />
       </div>
     </div>
   );
@@ -597,9 +668,14 @@ function LivingRoomView({
   setSofaState,
   tableState,
   setTableState,
+  onRegenerate,
 }) {
   const [transformMode, setTransformMode] = useState("translate");
   const [selectedId, setSelectedId] = useState(selectedSofa.id);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const totalCost = selectedSofa.price + selectedTable.price;
+  const withinBudget = totalCost <= budget;
 
   useEffect(() => {
     if (selectedId !== selectedSofa.id && selectedId !== selectedTable.id) {
@@ -607,21 +683,38 @@ function LivingRoomView({
     }
   }, [selectedId, selectedSofa.id, selectedTable.id]);
 
+  const handleSaveView = () => {
+    const payload = {
+      selectedSofa,
+      selectedTable,
+      sofaState,
+      tableState,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem("smartfurnish_saved_view", JSON.stringify(payload));
+    alert("View saved locally.");
+  };
+
+  const handlePublishView = () => {
+    alert("Publish flow placeholder. Next step is connecting backend/shareable link.");
+  };
+
   return (
     <div className="workspace-page">
       <div className="workspace-topbar">
         <div>
           <div className="workspace-title">Living Room Concept</div>
           <div className="workspace-subtitle">
-            Front view on load, cleaner product panel, and expandable item details.
+            Click the layout to open it larger, regenerate the room, save your view, or publish it.
           </div>
         </div>
 
         <div className="budget-pill">
           <span>Budget</span>
-          <strong>
-            ${selectedSofa.price + selectedTable.price} / ${budget}
+          <strong className={withinBudget ? "budget-good" : "budget-bad"}>
+            ${totalCost}
           </strong>
+          <span>/ ${budget}</span>
         </div>
       </div>
 
@@ -634,77 +727,82 @@ function LivingRoomView({
             >
               Move
             </button>
-
             <button
               className={transformMode === "rotate" ? "tool-active" : ""}
               onClick={() => setTransformMode("rotate")}
             >
               Rotate
             </button>
-
             <button
               className={transformMode === "scale" ? "tool-active" : ""}
               onClick={() => setTransformMode("scale")}
             >
               Resize
             </button>
-
+            <button onClick={onRegenerate}>Regenerate View</button>
+            <button onClick={handleSaveView}>Save View</button>
+            <button onClick={handlePublishView}>Publish View</button>
             <button onClick={onBack}>Back</button>
           </div>
 
-          <div className="viewer-frame">
-            <LivingRoomScene
-              selectedSofa={selectedSofa}
-              selectedTable={selectedTable}
-              sofaState={sofaState}
-              setSofaState={setSofaState}
-              tableState={tableState}
-              setTableState={setTableState}
-              transformMode={transformMode}
-              selectedId={selectedId}
-              setSelectedId={setSelectedId}
-            />
-          </div>
+          <button className="layout-expand-trigger" onClick={() => setIsFullscreen(true)}>
+            <div className="viewer-frame">
+              <LivingRoomScene
+                selectedSofa={selectedSofa}
+                selectedTable={selectedTable}
+                sofaState={sofaState}
+                setSofaState={setSofaState}
+                tableState={tableState}
+                setTableState={setTableState}
+                transformMode={transformMode}
+                selectedId={selectedId}
+                setSelectedId={setSelectedId}
+              />
+            </div>
+          </button>
 
           <div className="helper-bar">
-            <span>Select sofa or center table</span>
-            <span>Move / Rotate / Resize both</span>
-            <span>Product details open inside the card</span>
+            <span>Click the layout for fullscreen view</span>
+            <span>Recommendations stay collapsed until opened</span>
+            <span>Budget turns green or red automatically</span>
           </div>
         </div>
 
         <div className="workspace-right professional-panel">
-          <div className="panel-section-title">Sofa Options</div>
+          <OptionSection
+            title="Recommended Sofa"
+            items={SOFA_OPTIONS}
+            activeId={selectedSofa.id}
+            label="Sofa"
+            onUse={(nextSofa) => {
+              setSelectedSofa(nextSofa);
+              setSelectedId(nextSofa.id);
+            }}
+          />
 
-          {SOFA_OPTIONS.map((item) => (
-            <ProductCard
-              key={item.id}
-              item={item}
-              active={selectedSofa.id === item.id}
-              label="Sofa"
-              onUse={(nextSofa) => {
-                setSelectedSofa(nextSofa);
-                setSelectedId(nextSofa.id);
-              }}
-            />
-          ))}
-
-          <div className="panel-section-title">Center Table Options</div>
-
-          {TABLE_OPTIONS.map((item) => (
-            <ProductCard
-              key={item.id}
-              item={item}
-              active={selectedTable.id === item.id}
-              label="Center Table"
-              onUse={(nextTable) => {
-                setSelectedTable(nextTable);
-                setSelectedId(nextTable.id);
-              }}
-            />
-          ))}
+          <OptionSection
+            title="Recommended Center Table"
+            items={TABLE_OPTIONS}
+            activeId={selectedTable.id}
+            label="Center Table"
+            onUse={(nextTable) => {
+              setSelectedTable(nextTable);
+              setSelectedId(nextTable.id);
+            }}
+          />
         </div>
       </div>
+
+      <FullscreenViewer
+        open={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        selectedSofa={selectedSofa}
+        selectedTable={selectedTable}
+        sofaState={sofaState}
+        setSofaState={setSofaState}
+        tableState={tableState}
+        setTableState={setTableState}
+      />
     </div>
   );
 }
@@ -712,12 +810,24 @@ function LivingRoomView({
 export default function App() {
   const [page, setPage] = useState("setup");
   const [budget, setBudget] = useState(2000);
-
   const [selectedSofa, setSelectedSofa] = useState(SOFA_OPTIONS[1]);
   const [selectedTable, setSelectedTable] = useState(TABLE_OPTIONS[0]);
-
   const [sofaState, setSofaState] = useState(getDefaultLayout().sofa);
   const [tableState, setTableState] = useState(getDefaultLayout().table);
+
+  const regenerateView = () => {
+    const nextSofa =
+      SOFA_OPTIONS[Math.floor(Math.random() * SOFA_OPTIONS.length)];
+    const nextTable =
+      TABLE_OPTIONS[Math.floor(Math.random() * TABLE_OPTIONS.length)];
+
+    setSelectedSofa(nextSofa);
+    setSelectedTable(nextTable);
+
+    const layout = getDefaultLayout();
+    setSofaState(layout.sofa);
+    setTableState(layout.table);
+  };
 
   useEffect(() => {
     const layout = getDefaultLayout();
@@ -744,12 +854,13 @@ export default function App() {
           setSelectedSofa={setSelectedSofa}
           selectedTable={selectedTable}
           setSelectedTable={setSelectedTable}
-          budget={budget}
+          budget={Number(budget) || 0}
           onBack={() => setPage("setup")}
           sofaState={sofaState}
           setSofaState={setSofaState}
           tableState={tableState}
           setTableState={setTableState}
+          onRegenerate={regenerateView}
         />
       )}
     </div>
