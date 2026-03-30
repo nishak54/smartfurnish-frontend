@@ -816,49 +816,39 @@ function LivingRoomView({
           </div>
         </div>
 
-        <div className="workspace-right professional-panel">
-          <OptionSection
-            title="Recommended Sofa"
-            items={SOFA_OPTIONS}
-            activeId={selectedSofa.id}
-            label="Sofa"
-            onUse={(nextSofa) => {
-              setSelectedSofa(nextSofa);
-              setSelectedId(null);
-              setTransformMode("translate");
-            }}
-          />
+      <div className="workspace-right professional-panel">
+  <div className="recommendation-header">
+    Recommended Items
+  </div>
 
-          <OptionSection
-            title="Recommended Center Table"
-            items={TABLE_OPTIONS}
-            activeId={selectedTable.id}
-            label="Center Table"
-            onUse={(nextTable) => {
-              setSelectedTable(nextTable);
-              setSelectedId(null);
-              setTransformMode("translate");
-            }}
-          />
+  <OptionSection
+    title="Sofas"
+    items={SOFA_OPTIONS}
+    activeId={selectedSofa.id}
+    label="Sofa"
+    onUse={(nextSofa) => {
+      setSelectedSofa(nextSofa);
+      setSelectedId(null);
+      setTransformMode("translate");
+    }}
+  />
 
-          <DummyOptionSection
-            title="Recommended TV Stands"
-            items={TV_STAND_OPTIONS}
-            label="TV Stand"
-          />
+  <OptionSection
+    title="Center Tables"
+    items={TABLE_OPTIONS}
+    activeId={selectedTable.id}
+    label="Center Table"
+    onUse={(nextTable) => {
+      setSelectedTable(nextTable);
+      setSelectedId(null);
+      setTransformMode("translate");
+    }}
+  />
 
-          <DummyOptionSection
-            title="Recommended Floor Lamps"
-            items={FLOOR_LAMP_OPTIONS}
-            label="Floor Lamp"
-          />
-
-          <DummyOptionSection
-            title="Recommended Rugs"
-            items={RUG_OPTIONS}
-            label="Rug"
-          />
-        </div>
+  <DummyOptionSection title="TV Stands" items={TV_STAND_OPTIONS} label="TV Stand" />
+  <DummyOptionSection title="Floor Lamps" items={FLOOR_LAMP_OPTIONS} label="Floor Lamp" />
+  <DummyOptionSection title="Rugs" items={RUG_OPTIONS} label="Rug" />
+</div>
       </div>
 
       <FullscreenViewer

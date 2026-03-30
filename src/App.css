@@ -587,3 +587,14 @@ img {
   font-weight: 700;
   color: #334155;
 }
+
+.recommendation-header {
+  font-size: 18px;
+  font-weight: 800;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #dbe3ee;
+  color: #0f172a;
+}
