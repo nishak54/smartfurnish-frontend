@@ -127,6 +127,24 @@ const TABLE_OPTIONS = [
   },
 ];
 
+const TV_STAND_OPTIONS = [
+  { id: "tv1", name: "Modern TV Stand", price: 340 },
+  { id: "tv2", name: "Walnut TV Console", price: 420 },
+  { id: "tv3", name: "Compact Media Unit", price: 280 },
+];
+
+const FLOOR_LAMP_OPTIONS = [
+  { id: "lamp1", name: "Arc Floor Lamp", price: 110 },
+  { id: "lamp2", name: "Minimal Floor Lamp", price: 95 },
+  { id: "lamp3", name: "Tripod Lamp", price: 135 },
+];
+
+const RUG_OPTIONS = [
+  { id: "rug1", name: "Soft Area Rug", price: 180 },
+  { id: "rug2", name: "Modern Pattern Rug", price: 220 },
+  { id: "rug3", name: "Neutral Living Rug", price: 160 },
+];
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -657,6 +675,27 @@ function FullscreenViewer({
   );
 }
 
+function DummyOptionSection({ title, items, label }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="option-section">
+      <button className="option-section-header" onClick={() => setOpen((v) => !v)}>
+        <span>{title}</span>
+        <span>{open ? "−" : "+"}</span>
+      </button>
+
+      {open && (
+        <div className="option-section-body">
+          {items.map((item) => (
+            <DummyProductCard key={item.id} item={item} label={label} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LivingRoomView({
   selectedSofa,
   setSelectedSofa,
@@ -671,7 +710,7 @@ function LivingRoomView({
   onRegenerate,
 }) {
   const [transformMode, setTransformMode] = useState("translate");
-  const [selectedId, setSelectedId] = useState(selectedSofa.id);
+  const [selectedId, setSelectedId] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const totalCost = selectedSofa.price + selectedTable.price;
@@ -679,7 +718,7 @@ function LivingRoomView({
 
   useEffect(() => {
     if (selectedId !== selectedSofa.id && selectedId !== selectedTable.id) {
-      setSelectedId(selectedSofa.id);
+      setSelectedId(null);
     }
   }, [selectedId, selectedSofa.id, selectedTable.id]);
 
@@ -697,6 +736,12 @@ function LivingRoomView({
 
   const handlePublishView = () => {
     alert("Publish flow placeholder. Next step is connecting backend/shareable link.");
+  };
+
+  const handleRegenerateClick = () => {
+    setSelectedId(null);
+    setTransformMode("translate");
+    onRegenerate();
   };
 
   return (
@@ -727,19 +772,22 @@ function LivingRoomView({
             >
               Move
             </button>
+
             <button
               className={transformMode === "rotate" ? "tool-active" : ""}
               onClick={() => setTransformMode("rotate")}
             >
               Rotate
             </button>
+
             <button
               className={transformMode === "scale" ? "tool-active" : ""}
               onClick={() => setTransformMode("scale")}
             >
               Resize
             </button>
-            <button onClick={onRegenerate}>Regenerate View</button>
+
+            <button onClick={handleRegenerateClick}>Regenerate View</button>
             <button onClick={handleSaveView}>Save View</button>
             <button onClick={handlePublishView}>Publish View</button>
             <button onClick={onBack}>Back</button>
@@ -764,7 +812,7 @@ function LivingRoomView({
           <div className="helper-bar">
             <span>Click the layout for fullscreen view</span>
             <span>Recommendations stay collapsed until opened</span>
-            <span>Budget turns green or red automatically</span>
+            <span>Regenerate clears selection and hides markers</span>
           </div>
         </div>
 
@@ -776,7 +824,8 @@ function LivingRoomView({
             label="Sofa"
             onUse={(nextSofa) => {
               setSelectedSofa(nextSofa);
-              setSelectedId(nextSofa.id);
+              setSelectedId(null);
+              setTransformMode("translate");
             }}
           />
 
@@ -787,8 +836,27 @@ function LivingRoomView({
             label="Center Table"
             onUse={(nextTable) => {
               setSelectedTable(nextTable);
-              setSelectedId(nextTable.id);
+              setSelectedId(null);
+              setTransformMode("translate");
             }}
+          />
+
+          <DummyOptionSection
+            title="Recommended TV Stands"
+            items={TV_STAND_OPTIONS}
+            label="TV Stand"
+          />
+
+          <DummyOptionSection
+            title="Recommended Floor Lamps"
+            items={FLOOR_LAMP_OPTIONS}
+            label="Floor Lamp"
+          />
+
+          <DummyOptionSection
+            title="Recommended Rugs"
+            items={RUG_OPTIONS}
+            label="Rug"
           />
         </div>
       </div>
