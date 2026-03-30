@@ -808,12 +808,6 @@ function LivingRoomView({
               />
             </div>
           </button>
-
-          <div className="helper-bar">
-            <span>Click the layout for fullscreen view</span>
-            <span>Recommendations stay collapsed until opened</span>
-            <span>Regenerate clears selection and hides markers</span>
-          </div>
         </div>
 
       <div className="workspace-right professional-panel">
