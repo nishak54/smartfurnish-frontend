@@ -23,6 +23,14 @@ const SOFA_OPTIONS = [
     height: 2.8,
     minScale: 0.9,
     maxScale: 2.3,
+    details: {
+      rating: "4.4",
+      purchases: "1,280+",
+      material: "Fabric",
+      inStock: "Yes",
+      condition: "New",
+      dimensions: '84" W × 35" D × 34" H',
+    },
   },
   {
     id: "sofa2",
@@ -33,6 +41,14 @@ const SOFA_OPTIONS = [
     height: 2.8,
     minScale: 0.9,
     maxScale: 2.3,
+    details: {
+      rating: "4.6",
+      purchases: "2,030+",
+      material: "Linen Blend",
+      inStock: "Yes",
+      condition: "New",
+      dimensions: '88" W × 36" D × 35" H',
+    },
   },
   {
     id: "sofa3",
@@ -43,6 +59,14 @@ const SOFA_OPTIONS = [
     height: 2.8,
     minScale: 0.9,
     maxScale: 2.3,
+    details: {
+      rating: "4.3",
+      purchases: "860+",
+      material: "Velvet",
+      inStock: "Limited",
+      condition: "Used",
+      dimensions: '82" W × 34" D × 33" H',
+    },
   },
 ];
 
@@ -52,10 +76,18 @@ const TABLE_OPTIONS = [
     name: "Center Table 1",
     price: 220,
     imagePath: "/assets/items/tables/table1.webp",
-    width: 3.6,   // ⬅️ increased (was ~2.8)
-    height: 1.6,  // ⬅️ increased (was ~1.25)
+    width: 3.6,
+    height: 1.6,
     minScale: 0.8,
     maxScale: 2.2,
+    details: {
+      rating: "4.5",
+      purchases: "940+",
+      material: "Engineered Wood",
+      inStock: "Yes",
+      condition: "New",
+      dimensions: '42" W × 22" D × 18" H',
+    },
   },
   {
     id: "table2",
@@ -66,6 +98,14 @@ const TABLE_OPTIONS = [
     height: 1.6,
     minScale: 0.8,
     maxScale: 2.2,
+    details: {
+      rating: "4.2",
+      purchases: "610+",
+      material: "Solid Wood",
+      inStock: "Yes",
+      condition: "New",
+      dimensions: '40" W × 24" D × 17" H',
+    },
   },
   {
     id: "table3",
@@ -76,8 +116,15 @@ const TABLE_OPTIONS = [
     height: 1.6,
     minScale: 0.8,
     maxScale: 2.2,
+    details: {
+      rating: "4.7",
+      purchases: "1,420+",
+      material: "Tempered Glass + Metal",
+      inStock: "Yes",
+      condition: "New",
+      dimensions: '44" W × 24" D × 18" H',
+    },
   },
-
 ];
 
 function SetupPage({ budget, setBudget, onGenerate }) {
@@ -87,7 +134,7 @@ function SetupPage({ budget, setBudget, onGenerate }) {
         <div className="setup-kicker">Smart Furnish</div>
         <h1>Design your living room</h1>
         <p className="setup-subtitle">
-          Enter your budget and generate a living room concept.
+          Enter your budget and generate a furnished living room concept.
         </p>
 
         <div className="field-group">
@@ -116,7 +163,85 @@ function SetupPage({ budget, setBudget, onGenerate }) {
   );
 }
 
-function RoomShell() {
+function RoomDecor({ decorVisibility }) {
+  return (
+    <>
+      {decorVisibility.plant && (
+        <group position={[5.15, 0, 2.15]}>
+          <mesh position={[0, 0.28, 0]}>
+            <cylinderGeometry args={[0.24, 0.24, 0.56, 24]} />
+            <meshStandardMaterial color="#b57412" />
+          </mesh>
+          <mesh position={[-0.18, 0.88, 0]}>
+            <capsuleGeometry args={[0.14, 0.7, 4, 8]} />
+            <meshStandardMaterial color="#13a34a" />
+          </mesh>
+          <mesh position={[0.02, 1, 0.06]}>
+            <capsuleGeometry args={[0.14, 0.8, 4, 8]} />
+            <meshStandardMaterial color="#2ecb62" />
+          </mesh>
+          <mesh position={[0.24, 0.86, -0.02]}>
+            <capsuleGeometry args={[0.14, 0.7, 4, 8]} />
+            <meshStandardMaterial color="#1ea24f" />
+          </mesh>
+        </group>
+      )}
+
+      {decorVisibility.lamp && (
+        <group position={[-5.2, 0, 1.7]}>
+          <mesh position={[0, 0.06, 0]}>
+            <cylinderGeometry args={[0.28, 0.28, 0.12, 30]} />
+            <meshStandardMaterial color="#4b5563" />
+          </mesh>
+          <mesh position={[0, 1.15, 0]}>
+            <cylinderGeometry args={[0.03, 0.03, 2.2, 18]} />
+            <meshStandardMaterial color="#6b7280" />
+          </mesh>
+          <mesh position={[0, 2.2, 0]}>
+            <coneGeometry args={[0.42, 0.6, 30]} />
+            <meshStandardMaterial color="#f3efe7" />
+          </mesh>
+        </group>
+      )}
+
+      {decorVisibility.art && (
+        <group position={[0, 2.55, -5.17]}>
+          <mesh>
+            <planeGeometry args={[2.1, 1.2]} />
+            <meshStandardMaterial color="#ffffff" />
+          </mesh>
+          <mesh position={[-0.45, 0.05, 0.01]}>
+            <planeGeometry args={[0.5, 0.75]} />
+            <meshStandardMaterial color="#d4a373" />
+          </mesh>
+          <mesh position={[0.2, -0.03, 0.01]}>
+            <planeGeometry args={[0.8, 0.55]} />
+            <meshStandardMaterial color="#84a59d" />
+          </mesh>
+        </group>
+      )}
+
+      {decorVisibility.vase && (
+        <group position={[-4.8, 0, -1.8]}>
+          <mesh position={[0, 0.34, 0]}>
+            <cylinderGeometry args={[0.16, 0.12, 0.68, 24]} />
+            <meshStandardMaterial color="#ddd6fe" />
+          </mesh>
+          <mesh position={[0.05, 0.84, 0]}>
+            <capsuleGeometry args={[0.05, 0.42, 4, 8]} />
+            <meshStandardMaterial color="#7fb069" />
+          </mesh>
+          <mesh position={[-0.06, 0.9, 0.04]}>
+            <capsuleGeometry args={[0.04, 0.32, 4, 8]} />
+            <meshStandardMaterial color="#6aa84f" />
+          </mesh>
+        </group>
+      )}
+    </>
+  );
+}
+
+function RoomShell({ decorVisibility }) {
   return (
     <>
       <color attach="background" args={["#eef2f7"]} />
@@ -160,27 +285,7 @@ function RoomShell() {
         <meshStandardMaterial color="#cfe7ff" />
       </mesh>
 
-      <group position={[5.2, 0, 2.2]}>
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[0.24, 0.24, 0.6, 24]} />
-          <meshStandardMaterial color="#b57412" />
-        </mesh>
-
-        <mesh position={[-0.18, 0.88, 0]}>
-          <capsuleGeometry args={[0.14, 0.7, 4, 8]} />
-          <meshStandardMaterial color="#13a34a" />
-        </mesh>
-
-        <mesh position={[0.02, 1, 0.06]}>
-          <capsuleGeometry args={[0.14, 0.8, 4, 8]} />
-          <meshStandardMaterial color="#2ecb62" />
-        </mesh>
-
-        <mesh position={[0.24, 0.86, -0.02]}>
-          <capsuleGeometry args={[0.14, 0.7, 4, 8]} />
-          <meshStandardMaterial color="#1ea24f" />
-        </mesh>
-      </group>
+      <RoomDecor decorVisibility={decorVisibility} />
     </>
   );
 }
@@ -270,7 +375,7 @@ function getDefaultLayout() {
     table: {
       position: [0, 0, 0.45],
       rotationY: 0,
-      scale: 1.25, // ⬅️ increase this (was 1.0)
+      scale: 1.25,
     },
   };
 }
@@ -376,6 +481,7 @@ function LivingRoomScene({
   transformMode,
   selectedId,
   setSelectedId,
+  decorVisibility,
 }) {
   const orbitRef = useRef(null);
 
@@ -385,7 +491,7 @@ function LivingRoomScene({
       onPointerMissed={() => setSelectedId(null)}
     >
       <Suspense fallback={null}>
-        <RoomShell />
+        <RoomShell decorVisibility={decorVisibility} />
 
         <ItemObject
           item={selectedSofa}
@@ -420,16 +526,78 @@ function LivingRoomScene({
 }
 
 function ProductCard({ item, active, label, onUse }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   return (
-    <div className={`workspace-card ${active ? "selected-card" : ""}`}>
+    <div className={`workspace-card premium-card ${active ? "selected-card" : ""}`}>
       <img src={item.imagePath} alt={item.name} />
       <div className="workspace-card-content">
-        <div className="workspace-card-category">{label}</div>
-        <div className="workspace-card-title">{item.name}</div>
-        <div className="workspace-card-price">${item.price}</div>
-        <div className="workspace-card-actions">
-          <button onClick={() => onUse(item)}>Use This {label}</button>
+        <div className="workspace-card-top">
+          <div>
+            <div className="workspace-card-category">{label}</div>
+            <div className="workspace-card-title">{item.name}</div>
+          </div>
+          <div className="workspace-card-price">${item.price}</div>
         </div>
+
+        <div className="workspace-card-actions">
+          <button onClick={() => onUse(item)}>Use This</button>
+          <button className="secondary-btn" onClick={() => setShowDetails((v) => !v)}>
+            {showDetails ? "Hide Details" : "Details"}
+          </button>
+        </div>
+
+        {showDetails && (
+          <div className="details-box">
+            <div><strong>Rating:</strong> {item.details.rating}</div>
+            <div><strong>Purchases:</strong> {item.details.purchases}</div>
+            <div><strong>Material:</strong> {item.details.material}</div>
+            <div><strong>In Stock:</strong> {item.details.inStock}</div>
+            <div><strong>Condition:</strong> {item.details.condition}</div>
+            <div><strong>Dimensions:</strong> {item.details.dimensions}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DecorPanel({ decorVisibility, setDecorVisibility }) {
+  const toggle = (key) => {
+    setDecorVisibility((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  return (
+    <div className="selection-panel decor-panel">
+      <div className="selection-heading">Decor</div>
+      <div className="decor-toggle-list">
+        <button
+          className={decorVisibility.plant ? "decor-on" : "decor-off"}
+          onClick={() => toggle("plant")}
+        >
+          {decorVisibility.plant ? "Hide Plant" : "Show Plant"}
+        </button>
+        <button
+          className={decorVisibility.lamp ? "decor-on" : "decor-off"}
+          onClick={() => toggle("lamp")}
+        >
+          {decorVisibility.lamp ? "Hide Lamp" : "Show Lamp"}
+        </button>
+        <button
+          className={decorVisibility.art ? "decor-on" : "decor-off"}
+          onClick={() => toggle("art")}
+        >
+          {decorVisibility.art ? "Hide Wall Art" : "Show Wall Art"}
+        </button>
+        <button
+          className={decorVisibility.vase ? "decor-on" : "decor-off"}
+          onClick={() => toggle("vase")}
+        >
+          {decorVisibility.vase ? "Hide Vase" : "Show Vase"}
+        </button>
       </div>
     </div>
   );
@@ -446,15 +614,14 @@ function LivingRoomView({
   setSofaState,
   tableState,
   setTableState,
+  decorVisibility,
+  setDecorVisibility,
 }) {
   const [transformMode, setTransformMode] = useState("translate");
   const [selectedId, setSelectedId] = useState(selectedSofa.id);
 
   useEffect(() => {
-    if (
-      selectedId !== selectedSofa.id &&
-      selectedId !== selectedTable.id
-    ) {
+    if (selectedId !== selectedSofa.id && selectedId !== selectedTable.id) {
       setSelectedId(selectedSofa.id);
     }
   }, [selectedId, selectedSofa.id, selectedTable.id]);
@@ -465,7 +632,7 @@ function LivingRoomView({
         <div>
           <div className="workspace-title">Living Room Concept</div>
           <div className="workspace-subtitle">
-            Front view on load, bigger sofa, and center table placed in front of it.
+            Front view on load, cleaner product panel, optional decor, and expandable item details.
           </div>
         </div>
 
@@ -515,18 +682,19 @@ function LivingRoomView({
               transformMode={transformMode}
               selectedId={selectedId}
               setSelectedId={setSelectedId}
+              decorVisibility={decorVisibility}
             />
           </div>
 
           <div className="helper-bar">
-            <span>Front view on Generate</span>
             <span>Select sofa or center table</span>
             <span>Move / Rotate / Resize both</span>
-            <span>Snap to floor and walls</span>
+            <span>Decor can be hidden anytime</span>
           </div>
         </div>
 
-        <div className="workspace-right">
+        <div className="workspace-right professional-panel">
+          <div className="panel-section-title">Recommended Sofa</div>
           <ProductCard
             item={selectedSofa}
             active={selectedId === selectedSofa.id}
@@ -537,21 +705,20 @@ function LivingRoomView({
             }}
           />
 
-          {SOFA_OPTIONS.filter((item) => item.id !== selectedSofa.id).map(
-            (item) => (
-              <ProductCard
-                key={item.id}
-                item={item}
-                active={false}
-                label="Sofa"
-                onUse={(nextSofa) => {
-                  setSelectedSofa(nextSofa);
-                  setSelectedId(nextSofa.id);
-                }}
-              />
-            )
-          )}
+          {SOFA_OPTIONS.filter((item) => item.id !== selectedSofa.id).map((item) => (
+            <ProductCard
+              key={item.id}
+              item={item}
+              active={false}
+              label="Sofa"
+              onUse={(nextSofa) => {
+                setSelectedSofa(nextSofa);
+                setSelectedId(nextSofa.id);
+              }}
+            />
+          ))}
 
+          <div className="panel-section-title">Recommended Center Table</div>
           <ProductCard
             item={selectedTable}
             active={selectedId === selectedTable.id}
@@ -562,39 +729,23 @@ function LivingRoomView({
             }}
           />
 
-          {TABLE_OPTIONS.filter((item) => item.id !== selectedTable.id).map(
-            (item) => (
-              <ProductCard
-                key={item.id}
-                item={item}
-                active={false}
-                label="Center Table"
-                onUse={(nextTable) => {
-                  setSelectedTable(nextTable);
-                  setSelectedId(nextTable.id);
-                }}
-              />
-            )
-          )}
+          {TABLE_OPTIONS.filter((item) => item.id !== selectedTable.id).map((item) => (
+            <ProductCard
+              key={item.id}
+              item={item}
+              active={false}
+              label="Center Table"
+              onUse={(nextTable) => {
+                setSelectedTable(nextTable);
+                setSelectedId(nextTable.id);
+              }}
+            />
+          ))}
 
-          <div className="selection-panel">
-            <div className="selection-heading">Selected Item</div>
-            <div className="selection-title">
-              {selectedId === selectedSofa.id
-                ? selectedSofa.name
-                : selectedId === selectedTable.id
-                ? selectedTable.name
-                : "None"}
-            </div>
-            <div className="selection-meta">
-              Sofa: x {sofaState.position[0]}, z {sofaState.position[2]}, scale{" "}
-              {sofaState.scale}
-            </div>
-            <div className="selection-meta">
-              Table: x {tableState.position[0]}, z {tableState.position[2]}, scale{" "}
-              {tableState.scale}
-            </div>
-          </div>
+          <DecorPanel
+            decorVisibility={decorVisibility}
+            setDecorVisibility={setDecorVisibility}
+          />
         </div>
       </div>
     </div>
@@ -610,6 +761,13 @@ export default function App() {
 
   const [sofaState, setSofaState] = useState(getDefaultLayout().sofa);
   const [tableState, setTableState] = useState(getDefaultLayout().table);
+
+  const [decorVisibility, setDecorVisibility] = useState({
+    plant: true,
+    lamp: true,
+    art: true,
+    vase: true,
+  });
 
   useEffect(() => {
     const layout = getDefaultLayout();
@@ -642,6 +800,8 @@ export default function App() {
           setSofaState={setSofaState}
           tableState={tableState}
           setTableState={setTableState}
+          decorVisibility={decorVisibility}
+          setDecorVisibility={setDecorVisibility}
         />
       )}
     </div>
