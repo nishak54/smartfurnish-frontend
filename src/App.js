@@ -52,31 +52,32 @@ const TABLE_OPTIONS = [
     name: "Center Table 1",
     price: 220,
     imagePath: "/assets/items/tables/table1.webp",
-    width: 2.8,
-    height: 1.25,
-    minScale: 0.7,
-    maxScale: 2.1,
+    width: 3.6,   // ⬅️ increased (was ~2.8)
+    height: 1.6,  // ⬅️ increased (was ~1.25)
+    minScale: 0.8,
+    maxScale: 2.2,
   },
   {
     id: "table2",
     name: "Center Table 2",
     price: 260,
     imagePath: "/assets/items/tables/table2.webp",
-    width: 2.8,
-    height: 1.25,
-    minScale: 0.7,
-    maxScale: 2.1,
+    width: 3.6,
+    height: 1.6,
+    minScale: 0.8,
+    maxScale: 2.2,
   },
   {
     id: "table3",
     name: "Center Table 3",
     price: 310,
     imagePath: "/assets/items/tables/table3.webp",
-    width: 2.8,
-    height: 1.25,
-    minScale: 0.7,
-    maxScale: 2.1,
+    width: 3.6,
+    height: 1.6,
+    minScale: 0.8,
+    maxScale: 2.2,
   },
+
 ];
 
 function SetupPage({ budget, setBudget, onGenerate }) {
@@ -269,7 +270,7 @@ function getDefaultLayout() {
     table: {
       position: [0, 0, 0.45],
       rotationY: 0,
-      scale: 1.0,
+      scale: 1.25, // ⬅️ increase this (was 1.0)
     },
   };
 }
