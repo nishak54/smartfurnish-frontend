@@ -76,8 +76,8 @@ const TABLE_OPTIONS = [
     name: "Center Table 1",
     price: 220,
     imagePath: "/assets/items/tables/table1.webp",
-    width: 3.6,
-    height: 1.6,
+    width: 3.9,
+    height: 1.8,
     minScale: 0.8,
     maxScale: 2.2,
     details: {
@@ -94,8 +94,8 @@ const TABLE_OPTIONS = [
     name: "Center Table 2",
     price: 260,
     imagePath: "/assets/items/tables/table2.webp",
-    width: 3.6,
-    height: 1.6,
+    width: 3.9,
+    height: 1.8,
     minScale: 0.8,
     maxScale: 2.2,
     details: {
@@ -112,8 +112,8 @@ const TABLE_OPTIONS = [
     name: "Center Table 3",
     price: 310,
     imagePath: "/assets/items/tables/table3.webp",
-    width: 3.6,
-    height: 1.6,
+    width: 3.9,
+    height: 1.8,
     minScale: 0.8,
     maxScale: 2.2,
     details: {
@@ -237,7 +237,6 @@ function RoomShell() {
   return (
     <>
       <color attach="background" args={["#eef2f7"]} />
-
       <ambientLight intensity={1.0} />
       <directionalLight position={[5, 8, 8]} intensity={1.0} />
       <directionalLight position={[-5, 5, -3]} intensity={0.18} />
@@ -461,297 +460,5 @@ function ItemObject({
         />
       )}
     </>
-  );
-}
-function LivingRoomScene({
-  selectedSofa,
-  selectedTable,
-  sofaState,
-  setSofaState,
-  tableState,
-  setTableState,
-  transformMode,
-  selectedId,
-  setSelectedId,
-}) {
-  const orbitRef = useRef(null);
-
-  return (
-    <Canvas
-      camera={{ position: [0, 3.9, 9.4], fov: 38 }}
-      onPointerMissed={() => setSelectedId(null)}
-    >
-      <Suspense fallback={null}>
-        <RoomShell />
-
-        <ItemObject
-          item={selectedSofa}
-          itemState={sofaState}
-          setItemState={setSofaState}
-          selected={selectedId === selectedSofa.id}
-          setSelectedId={setSelectedId}
-          transformMode={transformMode}
-          orbitRef={orbitRef}
-        />
-
-        <ItemObject
-          item={selectedTable}
-          itemState={tableState}
-          setItemState={setTableState}
-          selected={selectedId === selectedTable.id}
-          setSelectedId={setSelectedId}
-          transformMode={transformMode}
-          orbitRef={orbitRef}
-        />
-      </Suspense>
-
-      <OrbitControls
-        ref={orbitRef}
-        target={[0, 1.15, 0]}
-        minDistance={5.2}
-        maxDistance={16}
-        maxPolarAngle={Math.PI / 2.03}
-      />
-    </Canvas>
-  );
-}
-
-function ProductCard({ item, active, label, onUse }) {
-  const [showDetails, setShowDetails] = useState(false);
-
-  return (
-    <div className={`product-card ${active ? "active-card" : ""}`}>
-      <div className="product-image-wrap">
-        <img src={item.imagePath} alt={item.name} className="product-image" />
-      </div>
-
-      <div className="product-content">
-        <div className="product-top-row">
-          <div>
-            <div className="product-label">{label}</div>
-            <div className="product-name">{item.name}</div>
-          </div>
-          <div className="product-price">${item.price}</div>
-        </div>
-
-        <div className="product-actions">
-          <button className="product-btn product-btn-primary" onClick={() => onUse(item)}>
-            Use This
-          </button>
-          <button
-            className="product-btn product-btn-secondary"
-            onClick={() => setShowDetails((prev) => !prev)}
-          >
-            {showDetails ? "Hide Details" : "Details"}
-          </button>
-        </div>
-
-        {showDetails && (
-          <div className="product-details-card">
-            <div className="product-details-grid">
-              <div className="product-detail-item">
-                <span className="detail-key">Rating</span>
-                <span className="detail-value">⭐ {item.details.rating}</span>
-              </div>
-
-              <div className="product-detail-item">
-                <span className="detail-key">Purchases</span>
-                <span className="detail-value">{item.details.purchases}</span>
-              </div>
-
-              <div className="product-detail-item">
-                <span className="detail-key">Material</span>
-                <span className="detail-value">{item.details.material}</span>
-              </div>
-
-              <div className="product-detail-item">
-                <span className="detail-key">Stock</span>
-                <span className="detail-value">{item.details.inStock}</span>
-              </div>
-
-              <div className="product-detail-item">
-                <span className="detail-key">Condition</span>
-                <span className="detail-value">{item.details.condition}</span>
-              </div>
-
-              <div className="product-detail-item product-detail-item-full">
-                <span className="detail-key">Dimensions</span>
-                <span className="detail-value">{item.details.dimensions}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function LivingRoomView({
-  selectedSofa,
-  setSelectedSofa,
-  selectedTable,
-  setSelectedTable,
-  budget,
-  onBack,
-  sofaState,
-  setSofaState,
-  tableState,
-  setTableState,
-}) {
-  const [transformMode, setTransformMode] = useState("translate");
-  const [selectedId, setSelectedId] = useState(selectedSofa.id);
-
-  useEffect(() => {
-    if (selectedId !== selectedSofa.id && selectedId !== selectedTable.id) {
-      setSelectedId(selectedSofa.id);
-    }
-  }, [selectedId, selectedSofa.id, selectedTable.id]);
-
-  return (
-    <div className="workspace-page">
-      <div className="workspace-topbar">
-        <div>
-          <div className="workspace-title">Living Room Concept</div>
-          <div className="workspace-subtitle">
-            Front view on load, cleaner product panel, and expandable item details.
-          </div>
-        </div>
-
-        <div className="budget-pill">
-          <span>Budget</span>
-          <strong>
-            ${selectedSofa.price + selectedTable.price} / ${budget}
-          </strong>
-        </div>
-      </div>
-
-      <div className="workspace-body">
-        <div className="workspace-left">
-          <div className="tool-row">
-            <button
-              className={transformMode === "translate" ? "tool-active" : ""}
-              onClick={() => setTransformMode("translate")}
-            >
-              Move
-            </button>
-
-            <button
-              className={transformMode === "rotate" ? "tool-active" : ""}
-              onClick={() => setTransformMode("rotate")}
-            >
-              Rotate
-            </button>
-
-            <button
-              className={transformMode === "scale" ? "tool-active" : ""}
-              onClick={() => setTransformMode("scale")}
-            >
-              Resize
-            </button>
-
-            <button onClick={onBack}>Back</button>
-          </div>
-
-          <div className="viewer-frame">
-            <LivingRoomScene
-              selectedSofa={selectedSofa}
-              selectedTable={selectedTable}
-              sofaState={sofaState}
-              setSofaState={setSofaState}
-              tableState={tableState}
-              setTableState={setTableState}
-              transformMode={transformMode}
-              selectedId={selectedId}
-              setSelectedId={setSelectedId}
-            />
-          </div>
-
-          <div className="helper-bar">
-            <span>Select sofa or center table</span>
-            <span>Move / Rotate / Resize both</span>
-            <span>Product details open inside the card</span>
-          </div>
-        </div>
-
-        <div className="workspace-right professional-panel">
-          <div className="panel-section-title">Sofa Options</div>
-
-          {SOFA_OPTIONS.map((item) => (
-            <ProductCard
-              key={item.id}
-              item={item}
-              active={selectedSofa.id === item.id}
-              label="Sofa"
-              onUse={(nextSofa) => {
-                setSelectedSofa(nextSofa);
-                setSelectedId(nextSofa.id);
-              }}
-            />
-          ))}
-
-          <div className="panel-section-title">Center Table Options</div>
-
-          {TABLE_OPTIONS.map((item) => (
-            <ProductCard
-              key={item.id}
-              item={item}
-              active={selectedTable.id === item.id}
-              label="Center Table"
-              onUse={(nextTable) => {
-                setSelectedTable(nextTable);
-                setSelectedId(nextTable.id);
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function App() {
-  const [page, setPage] = useState("setup");
-  const [budget, setBudget] = useState(2000);
-
-  const [selectedSofa, setSelectedSofa] = useState(SOFA_OPTIONS[1]);
-  const [selectedTable, setSelectedTable] = useState(TABLE_OPTIONS[0]);
-
-  const [sofaState, setSofaState] = useState(getDefaultLayout().sofa);
-  const [tableState, setTableState] = useState(getDefaultLayout().table);
-
-  useEffect(() => {
-    const layout = getDefaultLayout();
-    setSofaState(layout.sofa);
-    setTableState(layout.table);
-  }, [selectedSofa, selectedTable]);
-
-  return (
-    <div className="app-shell">
-      {page === "setup" ? (
-        <SetupPage
-          budget={budget}
-          setBudget={setBudget}
-          onGenerate={() => {
-            const layout = getDefaultLayout();
-            setSofaState(layout.sofa);
-            setTableState(layout.table);
-            setPage("workspace");
-          }}
-        />
-      ) : (
-        <LivingRoomView
-          selectedSofa={selectedSofa}
-          setSelectedSofa={setSelectedSofa}
-          selectedTable={selectedTable}
-          setSelectedTable={setSelectedTable}
-          budget={budget}
-          onBack={() => setPage("setup")}
-          sofaState={sofaState}
-          setSofaState={setSofaState}
-          tableState={tableState}
-          setTableState={setTableState}
-        />
-      )}
-    </div>
   );
 }
