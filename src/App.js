@@ -1,8 +1,16 @@
-import React, { Suspense, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useLoader } from "@react-three/fiber";
 import { OrbitControls, TransformControls } from "@react-three/drei";
 import * as THREE from "three";
 import "./App.css";
+
+const ROOM = {
+  floorWidth: 14,
+  floorDepth: 11,
+  backWallZ: -5.3,
+  leftWallX: -7,
+  rightWallX: 7,
+};
 
 const SOFA_OPTIONS = [
   {
@@ -70,35 +78,31 @@ function RoomShell() {
       <directionalLight position={[8, 10, 6]} intensity={1.1} />
       <directionalLight position={[-5, 5, -3]} intensity={0.25} />
 
-      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[14, 11]} />
+        <planeGeometry args={[ROOM.floorWidth, ROOM.floorDepth]} />
         <meshStandardMaterial color="#dec8a8" />
       </mesh>
 
-      {/* Rug */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-0.4, 0.01, 0.4]}>
         <planeGeometry args={[5.5, 3.4]} />
         <meshStandardMaterial color="#d8d0f0" />
       </mesh>
 
-      {/* Walls */}
-      <mesh position={[0, 2.6, -5.3]}>
-        <boxGeometry args={[14, 5.2, 0.2]} />
+      <mesh position={[0, 2.6, ROOM.backWallZ]}>
+        <boxGeometry args={[ROOM.floorWidth, 5.2, 0.2]} />
         <meshStandardMaterial color="#eee9e1" />
       </mesh>
 
-      <mesh position={[-7, 2.6, 0]}>
-        <boxGeometry args={[0.2, 5.2, 11]} />
+      <mesh position={[ROOM.leftWallX, 2.6, 0]}>
+        <boxGeometry args={[0.2, 5.2, ROOM.floorDepth]} />
         <meshStandardMaterial color="#f7f2eb" />
       </mesh>
 
-      <mesh position={[7, 2.6, 0]}>
-        <boxGeometry args={[0.2, 5.2, 11]} />
+      <mesh position={[ROOM.rightWallX, 2.6, 0]}>
+        <boxGeometry args={[0.2, 5.2, ROOM.floorDepth]} />
         <meshStandardMaterial color="#f7f2eb" />
       </mesh>
 
-      {/* Window */}
       <mesh position={[-5.8, 2.2, -2.7]}>
         <boxGeometry args={[0.12, 1.7, 1.6]} />
         <meshStandardMaterial color="#ffffff" />
@@ -109,7 +113,6 @@ function RoomShell() {
         <meshStandardMaterial color="#cfe7ff" />
       </mesh>
 
-      {/* Plant */}
       <group position={[5.2, 0, 2.2]}>
         <mesh position={[0, 0.3, 0]}>
           <cylinderGeometry args={[0.24, 0.24, 0.6, 24]} />
@@ -146,6 +149,77 @@ function useSofaTexture(path) {
   return texture;
 }
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function normalizeAngle(angle) {
+  let a = angle % (Math.PI * 2);
+  if (a > Math.PI) a -= Math.PI * 2;
+  if (a < -Math.PI) a += Math.PI * 2;
+  return a;
+}
+
+function snapRotationY(angle) {
+  const snaps = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+  let best = snaps[0];
+  let minDiff = Infinity;
+
+  for (const candidate of snaps) {
+    const diff = Math.abs(normalizeAngle(angle - candidate));
+    if (diff < minDiff) {
+      minDiff = diff;
+      best = candidate;
+    }
+  }
+
+  return minDiff < 0.22 ? best : angle;
+}
+
+function getSofaFootprint(scale, rotationY) {
+  const baseWidth = 4.9;
+  const baseDepth = 1.35;
+  const snapped = snapRotationY(rotationY);
+  const isSideways =
+    Math.abs(Math.abs(normalizeAngle(snapped)) - Math.PI / 2) < 0.01;
+
+  return {
+    width: (isSideways ? baseDepth : baseWidth) * scale,
+    depth: (isSideways ? baseWidth : baseDepth) * scale,
+  };
+}
+
+function snapToWalls(position, scale, rotationY) {
+  const wallGap = 0.22;
+  const snapThreshold = 0.45;
+  const { width, depth } = getSofaFootprint(scale, rotationY);
+
+  let [x, , z] = position;
+
+  const minX = ROOM.leftWallX + width / 2 + wallGap;
+  const maxX = ROOM.rightWallX - width / 2 - wallGap;
+  const minZ = ROOM.backWallZ + depth / 2 + wallGap;
+  const maxZ = ROOM.floorDepth / 2 - depth / 2 - wallGap;
+
+  x = clamp(x, minX, maxX);
+  z = clamp(z, minZ, maxZ);
+
+  if (Math.abs(x - minX) < snapThreshold) x = minX;
+  if (Math.abs(x - maxX) < snapThreshold) x = maxX;
+  if (Math.abs(z - minZ) < snapThreshold) z = minZ;
+  if (Math.abs(z - maxZ) < snapThreshold) z = maxZ;
+
+  return [Number(x.toFixed(2)), 0, Number(z.toFixed(2))];
+}
+
+function getCenteredSofaState() {
+  return {
+    position: [0, 0, -1.45],
+    rotationY: 0,
+    scale: 1.18,
+  };
+}
+
 function SofaObject({
   sofa,
   sofaState,
@@ -158,30 +232,30 @@ function SofaObject({
   const texture = useSofaTexture(sofa.imagePath);
   const groupRef = useRef(null);
 
-  // Increased size so sofa looks correct in the room
-  const width = 4.2;
-  const height = 2.2;
+  const width = 4.9;
+  const height = 2.55;
+  const visualLift = height / 2 - 0.18;
 
-  // Lower image so visible sofa sits on the floor
-  const visualLift = height / 2 - 0.15;
-
-  const clampAndSave = () => {
+  const saveTransform = () => {
     if (!groupRef.current) return;
 
-    const x = Number(groupRef.current.position.x.toFixed(2));
-    const z = Number(groupRef.current.position.z.toFixed(2));
-    const ry = Number(groupRef.current.rotation.y.toFixed(2));
-
+    let x = groupRef.current.position.x;
+    let z = groupRef.current.position.z;
+    let ry = groupRef.current.rotation.y;
     let s = groupRef.current.scale.x;
-    s = Math.max(0.8, Math.min(2.5, s));
 
-    groupRef.current.position.set(x, 0, z);
+    s = clamp(s, 0.9, 2.2);
+    ry = snapRotationY(ry);
+
+    const snappedPos = snapToWalls([x, 0, z], s, ry);
+
+    groupRef.current.position.set(snappedPos[0], 0, snappedPos[2]);
     groupRef.current.rotation.set(0, ry, 0);
     groupRef.current.scale.set(s, s, s);
 
     setSofaState({
-      position: [x, 0, z],
-      rotationY: ry,
+      position: snappedPos,
+      rotationY: Number(ry.toFixed(2)),
       scale: Number(s.toFixed(2)),
     });
   };
@@ -228,9 +302,9 @@ function SofaObject({
           }}
           onMouseUp={() => {
             if (orbitRef.current) orbitRef.current.enabled = true;
-            clampAndSave();
+            saveTransform();
           }}
-          onObjectChange={clampAndSave}
+          onObjectChange={saveTransform}
         />
       )}
     </>
@@ -292,7 +366,7 @@ function LivingRoomView({
         <div>
           <div className="workspace-title">Living Room Concept</div>
           <div className="workspace-subtitle">
-            Click the sofa, then move, rotate, or resize it naturally inside the room.
+            Drag anywhere, auto-center by default, and snap to floor and walls.
           </div>
         </div>
 
@@ -343,9 +417,10 @@ function LivingRoomView({
           </div>
 
           <div className="helper-bar">
-            <span>Move: drag on floor</span>
-            <span>Rotate: use the circular Y-axis handle</span>
-            <span>Resize: scale bigger or smaller</span>
+            <span>Bigger default sofa</span>
+            <span>Drag anywhere on floor</span>
+            <span>Auto-centered on load</span>
+            <span>Snaps near walls</span>
           </div>
         </div>
 
@@ -395,20 +470,11 @@ export default function App() {
   const [page, setPage] = useState("setup");
   const [budget, setBudget] = useState(2000);
   const [selectedSofa, setSelectedSofa] = useState(SOFA_OPTIONS[1]);
+  const [sofaState, setSofaState] = useState(getCenteredSofaState());
 
-  const [sofaState, setSofaState] = useState({
-    position: [-2.2, 0, 0.4],
-    rotationY: 0.12,
-    scale: 1,
-  });
-
-  const handleChangeSofa = (sofa) => {
-    setSelectedSofa(sofa);
-    setSofaState((prev) => ({
-      ...prev,
-      scale: 1,
-    }));
-  };
+  useEffect(() => {
+    setSofaState(getCenteredSofaState());
+  }, [selectedSofa]);
 
   return (
     <div className="app-shell">
@@ -416,12 +482,15 @@ export default function App() {
         <SetupPage
           budget={budget}
           setBudget={setBudget}
-          onGenerate={() => setPage("workspace")}
+          onGenerate={() => {
+            setSofaState(getCenteredSofaState());
+            setPage("workspace");
+          }}
         />
       ) : (
         <LivingRoomView
           selectedSofa={selectedSofa}
-          onChangeSofa={handleChangeSofa}
+          onChangeSofa={setSelectedSofa}
           budget={budget}
           onBack={() => setPage("setup")}
           sofaState={sofaState}
