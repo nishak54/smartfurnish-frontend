@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useLoader } from "@react-three/fiber";
+import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
   TransformControls,
@@ -532,6 +532,25 @@ function ItemObject({
     </>
   );
 }
+function CameraController({ viewMode }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (viewMode === "front") {
+      camera.position.set(0, 3.6, 8.8);
+      camera.fov = 34;
+    } else {
+      camera.position.set(6.4, 4.3, 8.2);
+      camera.fov = 38;
+    }
+
+    camera.lookAt(0, 1.15, 0);
+    camera.updateProjectionMatrix();
+  }, [camera, viewMode]);
+
+  return null;
+}
+
 function LivingRoomScene({
   selectedSofa,
   selectedTable,
@@ -546,17 +565,14 @@ function LivingRoomScene({
 }) {
   const orbitRef = useRef(null);
 
-  const cameraProps =
-    viewMode === "front"
-      ? { position: [0, 3.6, 8.8], fov: 34 }
-      : { position: [6.4, 4.3, 8.2], fov: 38 };
-
   return (
     <Canvas
-      camera={cameraProps}
+      camera={{ position: [0, 3.6, 8.8], fov: 34 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
       onPointerMissed={() => setSelectedId(null)}
     >
+      <CameraController viewMode={viewMode} />
+
       <Suspense fallback={null}>
         <RoomShell />
 
