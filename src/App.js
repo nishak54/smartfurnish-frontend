@@ -1,6 +1,10 @@
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useLoader } from "@react-three/fiber";
-import { OrbitControls, TransformControls } from "@react-three/drei";
+import {
+  OrbitControls,
+  TransformControls,
+  Environment,
+} from "@react-three/drei";
 import * as THREE from "three";
 import "./App.css";
 
@@ -235,6 +239,43 @@ function useItemTexture(path) {
   return texture;
 }
 
+function useWoodTexture() {
+  return useMemo(() => {
+    const size = 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#d6b48e";
+    ctx.fillRect(0, 0, size, size);
+
+    for (let i = 0; i < 12; i++) {
+      const y = i * 42;
+      ctx.fillStyle = i % 2 === 0 ? "#d9b690" : "#cfa57f";
+      ctx.fillRect(0, y, size, 36);
+      ctx.strokeStyle = "rgba(95, 58, 28, 0.12)";
+      ctx.lineWidth = 2;
+
+      for (let j = 0; j < 8; j++) {
+        const x = j * 64 + ((i % 2) * 18);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 14, y + 36);
+        ctx.stroke();
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 3);
+    texture.anisotropy = 8;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  }, []);
+}
+
 function SetupPage({ budget, setBudget, onGenerate }) {
   return (
     <div className="setup-page">
@@ -322,41 +363,63 @@ function RoomDecor() {
           <meshStandardMaterial color="#84a59d" />
         </mesh>
       </group>
+
+      <group position={[-4.8, 0, -1.8]}>
+        <mesh position={[0, 0.34, 0]}>
+          <cylinderGeometry args={[0.16, 0.12, 0.68, 24]} />
+          <meshStandardMaterial color="#ddd6fe" />
+        </mesh>
+        <mesh position={[0.05, 0.84, 0]}>
+          <capsuleGeometry args={[0.05, 0.42, 4, 8]} />
+          <meshStandardMaterial color="#7fb069" />
+        </mesh>
+        <mesh position={[-0.06, 0.9, 0.04]}>
+          <capsuleGeometry args={[0.04, 0.32, 4, 8]} />
+          <meshStandardMaterial color="#6aa84f" />
+        </mesh>
+      </group>
     </>
   );
 }
 
 function RoomShell() {
+  const woodTexture = useWoodTexture();
+
   return (
     <>
       <color attach="background" args={["#eef2f7"]} />
-      <ambientLight intensity={1.0} />
-      <directionalLight position={[5, 8, 8]} intensity={1.0} />
-      <directionalLight position={[-5, 5, -3]} intensity={0.18} />
+      <Environment preset="apartment" />
+      <ambientLight intensity={0.65} />
+      <directionalLight position={[4, 7, 6]} intensity={0.8} />
+      <directionalLight position={[-5, 4, -3]} intensity={0.15} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[ROOM.floorWidth, ROOM.floorDepth]} />
-        <meshStandardMaterial color="#dec8a8" />
+        <meshStandardMaterial
+          map={woodTexture}
+          roughness={0.82}
+          metalness={0.04}
+        />
       </mesh>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0.4]}>
         <planeGeometry args={[5.8, 3.6]} />
-        <meshStandardMaterial color="#d8d0f0" />
+        <meshStandardMaterial color="#d8d0f0" roughness={0.92} />
       </mesh>
 
       <mesh position={[0, 2.6, ROOM.backWallZ]}>
         <boxGeometry args={[ROOM.floorWidth, 5.2, 0.2]} />
-        <meshStandardMaterial color="#eee9e1" />
+        <meshStandardMaterial color="#f1ece5" roughness={1} />
       </mesh>
 
       <mesh position={[ROOM.leftWallX, 2.6, 0]}>
         <boxGeometry args={[0.2, 5.2, ROOM.floorDepth]} />
-        <meshStandardMaterial color="#f7f2eb" />
+        <meshStandardMaterial color="#faf6f0" roughness={1} />
       </mesh>
 
       <mesh position={[ROOM.rightWallX, 2.6, 0]}>
         <boxGeometry args={[0.2, 5.2, ROOM.floorDepth]} />
-        <meshStandardMaterial color="#f7f2eb" />
+        <meshStandardMaterial color="#faf6f0" roughness={1} />
       </mesh>
 
       <mesh position={[-5.8, 2.2, -2.7]}>
@@ -366,7 +429,11 @@ function RoomShell() {
 
       <mesh position={[-5.72, 2.2, -2.7]}>
         <boxGeometry args={[0.05, 1.45, 1.3]} />
-        <meshStandardMaterial color="#cfe7ff" />
+        <meshStandardMaterial
+          color="#d6edff"
+          emissive="#cde7ff"
+          emissiveIntensity={0.25}
+        />
       </mesh>
 
       <RoomDecor />
@@ -449,7 +516,7 @@ function ItemObject({
         <TransformControls
           object={groupRef.current}
           mode={transformMode}
-          size={1}
+          size={0.95}
           space="local"
           {...axisProps}
           onMouseDown={() => {
@@ -475,17 +542,19 @@ function LivingRoomScene({
   transformMode,
   selectedId,
   setSelectedId,
-  isFullscreen = false,
+  viewMode,
 }) {
   const orbitRef = useRef(null);
 
+  const cameraProps =
+    viewMode === "front"
+      ? { position: [0, 3.6, 8.8], fov: 34 }
+      : { position: [6.4, 4.3, 8.2], fov: 38 };
+
   return (
     <Canvas
-      camera={
-        isFullscreen
-          ? { position: [0, 3.4, 8.4], fov: 34 }
-          : { position: [0, 3.9, 9.4], fov: 38 }
-      }
+      camera={cameraProps}
+      gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
       onPointerMissed={() => setSelectedId(null)}
     >
       <Suspense fallback={null}>
@@ -515,9 +584,9 @@ function LivingRoomScene({
       <OrbitControls
         ref={orbitRef}
         target={[0, 1.15, 0]}
-        minDistance={isFullscreen ? 4.5 : 5.2}
+        minDistance={4.8}
         maxDistance={18}
-        maxPolarAngle={Math.PI / 2.03}
+        maxPolarAngle={Math.PI / 2.04}
       />
     </Canvas>
   );
@@ -542,7 +611,10 @@ function ProductCard({ item, active, label, onUse }) {
         </div>
 
         <div className="product-actions">
-          <button className="product-btn product-btn-primary" onClick={() => onUse(item)}>
+          <button
+            className="product-btn product-btn-primary"
+            onClick={() => onUse(item)}
+          >
             Use This
           </button>
           <button
@@ -588,12 +660,28 @@ function ProductCard({ item, active, label, onUse }) {
   );
 }
 
+function DummyProductCard({ item, label }) {
+  return (
+    <div className="dummy-card">
+      <div className="dummy-card-icon">{label.slice(0, 1)}</div>
+      <div className="dummy-card-content">
+        <div className="dummy-card-label">{label}</div>
+        <div className="dummy-card-name">{item.name}</div>
+        <div className="dummy-card-price">${item.price}</div>
+      </div>
+    </div>
+  );
+}
+
 function OptionSection({ title, items, activeId, label, onUse }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(title === "Sofas");
 
   return (
     <div className="option-section">
-      <button className="option-section-header" onClick={() => setOpen((v) => !v)}>
+      <button
+        className="option-section-header"
+        onClick={() => setOpen((v) => !v)}
+      >
         <span>{title}</span>
         <span>{open ? "−" : "+"}</span>
       </button>
@@ -615,72 +703,15 @@ function OptionSection({ title, items, activeId, label, onUse }) {
   );
 }
 
-function FullscreenViewer({
-  open,
-  onClose,
-  selectedSofa,
-  selectedTable,
-  sofaState,
-  setSofaState,
-  tableState,
-  setTableState,
-}) {
-  const [selectedId, setSelectedId] = useState(selectedSofa.id);
-  const [transformMode, setTransformMode] = useState("translate");
-
-  if (!open) return null;
-
-  return (
-    <div className="fullscreen-overlay">
-      <div className="fullscreen-topbar">
-        <div className="fullscreen-title">Expanded Layout View</div>
-        <div className="fullscreen-actions">
-          <button
-            className={transformMode === "translate" ? "tool-active" : ""}
-            onClick={() => setTransformMode("translate")}
-          >
-            Move
-          </button>
-          <button
-            className={transformMode === "rotate" ? "tool-active" : ""}
-            onClick={() => setTransformMode("rotate")}
-          >
-            Rotate
-          </button>
-          <button
-            className={transformMode === "scale" ? "tool-active" : ""}
-            onClick={() => setTransformMode("scale")}
-          >
-            Resize
-          </button>
-          <button onClick={onClose}>Close</button>
-        </div>
-      </div>
-
-      <div className="fullscreen-canvas">
-        <LivingRoomScene
-          selectedSofa={selectedSofa}
-          selectedTable={selectedTable}
-          sofaState={sofaState}
-          setSofaState={setSofaState}
-          tableState={tableState}
-          setTableState={setTableState}
-          transformMode={transformMode}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-          isFullscreen={true}
-        />
-      </div>
-    </div>
-  );
-}
-
 function DummyOptionSection({ title, items, label }) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="option-section">
-      <button className="option-section-header" onClick={() => setOpen((v) => !v)}>
+      <button
+        className="option-section-header"
+        onClick={() => setOpen((v) => !v)}
+      >
         <span>{title}</span>
         <span>{open ? "−" : "+"}</span>
       </button>
@@ -707,41 +738,29 @@ function LivingRoomView({
   setSofaState,
   tableState,
   setTableState,
-  onRegenerate,
 }) {
   const [transformMode, setTransformMode] = useState("translate");
   const [selectedId, setSelectedId] = useState(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [viewMode, setViewMode] = useState("front");
 
   const totalCost = selectedSofa.price + selectedTable.price;
   const withinBudget = totalCost <= budget;
 
-  useEffect(() => {
-    if (selectedId !== selectedSofa.id && selectedId !== selectedTable.id) {
-      setSelectedId(null);
-    }
-  }, [selectedId, selectedSofa.id, selectedTable.id]);
+  const handleRegenerate = () => {
+    const nextSofa =
+      SOFA_OPTIONS[Math.floor(Math.random() * SOFA_OPTIONS.length)];
+    const nextTable =
+      TABLE_OPTIONS[Math.floor(Math.random() * TABLE_OPTIONS.length)];
 
-  const handleSaveView = () => {
-    const payload = {
-      selectedSofa,
-      selectedTable,
-      sofaState,
-      tableState,
-      savedAt: new Date().toISOString(),
-    };
-    localStorage.setItem("smartfurnish_saved_view", JSON.stringify(payload));
-    alert("View saved locally.");
-  };
-
-  const handlePublishView = () => {
-    alert("Publish flow placeholder. Next step is connecting backend/shareable link.");
-  };
-
-  const handleRegenerateClick = () => {
+    setSelectedSofa(nextSofa);
+    setSelectedTable(nextTable);
     setSelectedId(null);
     setTransformMode("translate");
-    onRegenerate();
+    setViewMode("front");
+
+    const layout = getDefaultLayout();
+    setSofaState(layout.sofa);
+    setTableState(layout.table);
   };
 
   return (
@@ -750,7 +769,8 @@ function LivingRoomView({
         <div>
           <div className="workspace-title">Living Room Concept</div>
           <div className="workspace-subtitle">
-            Click the layout to open it larger, regenerate the room, save your view, or publish it.
+            Better lighting, better floor, and cleaner camera presets for a
+            more natural room feel.
           </div>
         </div>
 
@@ -772,89 +792,92 @@ function LivingRoomView({
             >
               Move
             </button>
-
             <button
               className={transformMode === "rotate" ? "tool-active" : ""}
               onClick={() => setTransformMode("rotate")}
             >
               Rotate
             </button>
-
             <button
               className={transformMode === "scale" ? "tool-active" : ""}
               onClick={() => setTransformMode("scale")}
             >
               Resize
             </button>
-
-            <button onClick={handleRegenerateClick}>Regenerate View</button>
-            <button onClick={handleSaveView}>Save View</button>
-            <button onClick={handlePublishView}>Publish View</button>
+            <button
+              className={viewMode === "front" ? "tool-active" : ""}
+              onClick={() => setViewMode("front")}
+            >
+              Front View
+            </button>
+            <button
+              className={viewMode === "angled" ? "tool-active" : ""}
+              onClick={() => setViewMode("angled")}
+            >
+              Angled View
+            </button>
+            <button onClick={handleRegenerate}>Regenerate View</button>
             <button onClick={onBack}>Back</button>
           </div>
 
-          <button className="layout-expand-trigger" onClick={() => setIsFullscreen(true)}>
-            <div className="viewer-frame">
-              <LivingRoomScene
-                selectedSofa={selectedSofa}
-                selectedTable={selectedTable}
-                sofaState={sofaState}
-                setSofaState={setSofaState}
-                tableState={tableState}
-                setTableState={setTableState}
-                transformMode={transformMode}
-                selectedId={selectedId}
-                setSelectedId={setSelectedId}
-              />
-            </div>
-          </button>
+          <div className="viewer-frame">
+            <LivingRoomScene
+              selectedSofa={selectedSofa}
+              selectedTable={selectedTable}
+              sofaState={sofaState}
+              setSofaState={setSofaState}
+              tableState={tableState}
+              setTableState={setTableState}
+              transformMode={transformMode}
+              selectedId={selectedId}
+              setSelectedId={setSelectedId}
+              viewMode={viewMode}
+            />
+          </div>
         </div>
 
-      <div className="workspace-right professional-panel">
-  <div className="recommendation-header">
-    Recommended Items
-  </div>
+        <div className="workspace-right professional-panel">
+          <div className="recommendation-header">Recommended Items</div>
 
-  <OptionSection
-    title="Sofas"
-    items={SOFA_OPTIONS}
-    activeId={selectedSofa.id}
-    label="Sofa"
-    onUse={(nextSofa) => {
-      setSelectedSofa(nextSofa);
-      setSelectedId(null);
-      setTransformMode("translate");
-    }}
-  />
+          <OptionSection
+            title="Sofas"
+            items={SOFA_OPTIONS}
+            activeId={selectedSofa.id}
+            label="Sofa"
+            onUse={(nextSofa) => {
+              setSelectedSofa(nextSofa);
+              setSelectedId(null);
+              setTransformMode("translate");
+            }}
+          />
 
-  <OptionSection
-    title="Center Tables"
-    items={TABLE_OPTIONS}
-    activeId={selectedTable.id}
-    label="Center Table"
-    onUse={(nextTable) => {
-      setSelectedTable(nextTable);
-      setSelectedId(null);
-      setTransformMode("translate");
-    }}
-  />
+          <OptionSection
+            title="Center Tables"
+            items={TABLE_OPTIONS}
+            activeId={selectedTable.id}
+            label="Center Table"
+            onUse={(nextTable) => {
+              setSelectedTable(nextTable);
+              setSelectedId(null);
+              setTransformMode("translate");
+            }}
+          />
 
-  <DummyOptionSection title="TV Stands" items={TV_STAND_OPTIONS} label="TV Stand" />
-  <DummyOptionSection title="Floor Lamps" items={FLOOR_LAMP_OPTIONS} label="Floor Lamp" />
-  <DummyOptionSection title="Rugs" items={RUG_OPTIONS} label="Rug" />
-</div>
+          <DummyOptionSection
+            title="TV Stands"
+            items={TV_STAND_OPTIONS}
+            label="TV Stand"
+          />
+
+          <DummyOptionSection
+            title="Floor Lamps"
+            items={FLOOR_LAMP_OPTIONS}
+            label="Floor Lamp"
+          />
+
+          <DummyOptionSection title="Rugs" items={RUG_OPTIONS} label="Rug" />
+        </div>
       </div>
-
-      <FullscreenViewer
-        open={isFullscreen}
-        onClose={() => setIsFullscreen(false)}
-        selectedSofa={selectedSofa}
-        selectedTable={selectedTable}
-        sofaState={sofaState}
-        setSofaState={setSofaState}
-        tableState={tableState}
-        setTableState={setTableState}
-      />
     </div>
   );
 }
@@ -866,20 +889,6 @@ export default function App() {
   const [selectedTable, setSelectedTable] = useState(TABLE_OPTIONS[0]);
   const [sofaState, setSofaState] = useState(getDefaultLayout().sofa);
   const [tableState, setTableState] = useState(getDefaultLayout().table);
-
-  const regenerateView = () => {
-    const nextSofa =
-      SOFA_OPTIONS[Math.floor(Math.random() * SOFA_OPTIONS.length)];
-    const nextTable =
-      TABLE_OPTIONS[Math.floor(Math.random() * TABLE_OPTIONS.length)];
-
-    setSelectedSofa(nextSofa);
-    setSelectedTable(nextTable);
-
-    const layout = getDefaultLayout();
-    setSofaState(layout.sofa);
-    setTableState(layout.table);
-  };
 
   useEffect(() => {
     const layout = getDefaultLayout();
@@ -912,7 +921,6 @@ export default function App() {
           setSofaState={setSofaState}
           tableState={tableState}
           setTableState={setTableState}
-          onRegenerate={regenerateView}
         />
       )}
     </div>
