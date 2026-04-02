@@ -258,7 +258,7 @@ function useWoodTexture() {
       ctx.lineWidth = 2;
 
       for (let j = 0; j < 8; j++) {
-        const x = j * 64 + ((i % 2) * 18);
+        const x = j * 64 + (i % 2) * 18;
         ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.lineTo(x + 14, y + 36);
@@ -532,6 +532,7 @@ function ItemObject({
     </>
   );
 }
+
 function CameraController({ viewMode }) {
   const { camera } = useThree();
 
@@ -743,45 +744,93 @@ function DummyOptionSection({ title, items, label }) {
   );
 }
 
-function RealViewPanel({ image, loading, error }) {
+function RealViewPanel({ realview, angle, setAngle, loading, error }) {
+  const currentView = realview?.views?.[angle];
+
   return (
     <div className="real-view-panel">
       <div className="real-view-header">
         <div className="real-view-title">Real View</div>
         <div className="real-view-subtitle">
-          Photorealistic preview generated from your selected furniture.
+          Multi-angle room preview generated from backend layout data.
         </div>
       </div>
 
       {loading && (
         <div className="real-view-placeholder">
-          Generating photorealistic room...
+          Generating real view...
         </div>
       )}
 
-      {!loading && error && (
-        <div className="real-view-error">{error}</div>
-      )}
+      {!loading && error && <div className="real-view-error">{error}</div>}
 
-      {!loading && !error && !image && (
+      {!loading && !error && !realview && (
         <div className="real-view-placeholder">
-          Click <strong>Generate Real View</strong> to see a realistic room preview.
+          Click <strong>Generate Real View</strong> to see the room preview.
         </div>
       )}
 
-      {!loading && image && (
-        <div className="real-view-image-wrap">
-          <img
-            src={`data:image/png;base64,${image}`}
-            alt="Photorealistic living room"
-            className="real-view-image"
-          />
-        </div>
+      {!loading && !error && realview && currentView && (
+        <>
+          <div className="tool-row" style={{ marginBottom: 12 }}>
+            {realview.angles.map((a) => (
+              <button
+                key={a}
+                className={angle === a ? "tool-active" : ""}
+                onClick={() => setAngle(a)}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+
+          <div
+            className="real-view-image-wrap"
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: "920px",
+              aspectRatio: `${currentView.room.width} / ${currentView.room.height}`,
+              overflow: "hidden",
+              borderRadius: "16px",
+              background: "#f3f4f6",
+            }}
+          >
+            <img
+              src={currentView.background}
+              alt={`Room ${angle}`}
+              className="real-view-image"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+
+            {currentView.items.map((item) => (
+              <img
+                key={`${angle}-${item.id}`}
+                src={item.image}
+                alt={item.name}
+                style={{
+                  position: "absolute",
+                  left: `${(item.position.x / currentView.room.width) * 100}%`,
+                  top: `${(item.position.y / currentView.room.height) * 100}%`,
+                  width: `${(item.position.width / currentView.room.width) * 100}%`,
+                  height: `${(item.position.height / currentView.room.height) * 100}%`,
+                  objectFit: "contain",
+                  pointerEvents: "none",
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 }
-
 function LivingRoomView({
   selectedSofa,
   setSelectedSofa,
@@ -797,7 +846,8 @@ function LivingRoomView({
   const [transformMode, setTransformMode] = useState("translate");
   const [selectedId, setSelectedId] = useState(null);
   const [viewMode, setViewMode] = useState("front");
-  const [realViewImage, setRealViewImage] = useState(null);
+  const [realViewData, setRealViewData] = useState(null);
+  const [realViewAngle, setRealViewAngle] = useState("front");
   const [realViewLoading, setRealViewLoading] = useState(false);
   const [realViewError, setRealViewError] = useState("");
 
@@ -815,7 +865,8 @@ function LivingRoomView({
     setSelectedId(null);
     setTransformMode("translate");
     setViewMode("front");
-    setRealViewImage(null);
+    setRealViewData(null);
+    setRealViewAngle("front");
     setRealViewError("");
 
     const layout = getDefaultLayout();
@@ -823,90 +874,103 @@ function LivingRoomView({
     setTableState(layout.table);
   };
 
-const handleGenerateRealView = async () => {
-  try {
-    setRealViewLoading(true);
-    setRealViewError("");
+  const handleGenerateRealView = async () => {
+    try {
+      setRealViewLoading(true);
+      setRealViewError("");
 
-    const design = {
-      items: [
-        {
-          id: selectedSofa.id,
-          type: "sofa",
-          name: selectedSofa.name,
-          price: selectedSofa.price,
-          brand: selectedSofa.details?.brand || "Unknown",
-          color: selectedSofa.details?.color || "Unknown",
-          material: selectedSofa.details?.material || "Unknown",
-          in_stock: selectedSofa.details?.inStock === "Yes",
-          dimensions: selectedSofa.details?.dimensions || "",
-          rating: Number(selectedSofa.details?.rating || 0),
-          reviews: 0,
-          purchases: 0,
-          images: {
-            front: selectedSofa.imagePath,
-            left: selectedSofa.imagePath,
-            right: selectedSofa.imagePath,
+      const design = {
+        items: [
+          {
+            id: selectedSofa.id,
+            type: "sofa",
+            name: selectedSofa.name,
+            price: selectedSofa.price,
+            brand: "Unknown",
+            color: "Unknown",
+            material: selectedSofa.details?.material || "Unknown",
+            in_stock: selectedSofa.details?.inStock === "Yes",
+            dimensions: selectedSofa.details?.dimensions || "",
+            rating: Number(selectedSofa.details?.rating || 0),
+            reviews: 0,
+            purchases: 0,
+            images: {
+              front: selectedSofa.imagePath,
+              left: selectedSofa.imagePath,
+              right: selectedSofa.imagePath,
+            },
+            positions: {
+              front: { x: 120, y: 285, width: 300, height: 145 },
+              left: { x: 150, y: 290, width: 250, height: 138 },
+              right: { x: 520, y: 290, width: 250, height: 138 },
+            },
           },
-          positions: {
-            front: { x: 120, y: 285, width: 300, height: 145 },
-            left: { x: 150, y: 290, width: 250, height: 138 },
-            right: { x: 520, y: 290, width: 250, height: 138 },
+          {
+            id: selectedTable.id,
+            type: "center_table",
+            name: selectedTable.name,
+            price: selectedTable.price,
+            brand: "Unknown",
+            color: "Unknown",
+            material: selectedTable.details?.material || "Unknown",
+            in_stock: selectedTable.details?.inStock === "Yes",
+            dimensions: selectedTable.details?.dimensions || "",
+            rating: Number(selectedTable.details?.rating || 0),
+            reviews: 0,
+            purchases: 0,
+            images: {
+              front: selectedTable.imagePath,
+              left: selectedTable.imagePath,
+              right: selectedTable.imagePath,
+            },
+            positions: {
+              front: { x: 425, y: 325, width: 145, height: 88 },
+              left: { x: 430, y: 328, width: 130, height: 82 },
+              right: { x: 360, y: 328, width: 130, height: 82 },
+            },
           },
+        ],
+      };
+
+      const response = await fetch("/generate-realview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          id: selectedTable.id,
-          type: "center_table",
-          name: selectedTable.name,
-          price: selectedTable.price,
-          brand: selectedTable.details?.brand || "Unknown",
-          color: selectedTable.details?.color || "Unknown",
-          material: selectedTable.details?.material || "Unknown",
-          in_stock: selectedTable.details?.inStock === "Yes",
-          dimensions: selectedTable.details?.dimensions || "",
-          rating: Number(selectedTable.details?.rating || 0),
-          reviews: 0,
-          purchases: 0,
-          images: {
-            front: selectedTable.imagePath,
-            left: selectedTable.imagePath,
-            right: selectedTable.imagePath,
-          },
-          positions: {
-            front: { x: 425, y: 325, width: 145, height: 88 },
-            left: { x: 430, y: 328, width: 130, height: 82 },
-            right: { x: 360, y: 328, width: 130, height: 82 },
-          },
-        },
-      ],
-    };
+        body: JSON.stringify({ design }),
+      });
 
-    const response = await fetch("/generate-realview", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ design }),
-    });
+      const rawText = await response.text();
 
-    const data = await response.json();
+      let data = {};
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          throw new Error(
+            `Server returned non-JSON response: ${rawText.slice(0, 200)}`
+          );
+        }
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to generate real view");
+      if (!response.ok) {
+        throw new Error(
+          data.error || `Request failed with status ${response.status}`
+        );
+      }
+
+      if (!data.realview) {
+        throw new Error("No realview returned");
+      }
+
+      setRealViewData(data.realview);
+      setRealViewAngle(data.realview.defaultAngle || "front");
+    } catch (error) {
+      setRealViewError(error.message || "Something went wrong");
+    } finally {
+      setRealViewLoading(false);
     }
-
-    if (!data.realview) {
-      throw new Error("No realview returned");
-    }
-
-    setRealViewImage(null);
-    console.log("realview response", data.realview);
-  } catch (error) {
-    setRealViewError(error.message || "Something went wrong");
-  } finally {
-    setRealViewLoading(false);
-  }
-};
+  };
 
   return (
     <div className="workspace-page">
@@ -914,7 +978,7 @@ const handleGenerateRealView = async () => {
         <div>
           <div className="workspace-title">Living Room Concept</div>
           <div className="workspace-subtitle">
-            Interactive planning above, photorealistic preview below.
+            Interactive planning above, real view preview below.
           </div>
         </div>
 
@@ -964,7 +1028,7 @@ const handleGenerateRealView = async () => {
             <button onClick={handleGenerateRealView}>
               Generate Real View
             </button>
-            {realViewImage && (
+            {realViewData && (
               <button onClick={handleGenerateRealView}>
                 Regenerate Real View
               </button>
@@ -988,7 +1052,9 @@ const handleGenerateRealView = async () => {
           </div>
 
           <RealViewPanel
-            image={realViewImage}
+            realview={realViewData}
+            angle={realViewAngle}
+            setAngle={setRealViewAngle}
             loading={realViewLoading}
             error={realViewError}
           />
@@ -1006,7 +1072,8 @@ const handleGenerateRealView = async () => {
               setSelectedSofa(nextSofa);
               setSelectedId(null);
               setTransformMode("translate");
-              setRealViewImage(null);
+              setRealViewData(null);
+              setRealViewAngle("front");
             }}
           />
 
@@ -1019,7 +1086,8 @@ const handleGenerateRealView = async () => {
               setSelectedTable(nextTable);
               setSelectedId(null);
               setTransformMode("translate");
-              setRealViewImage(null);
+              setRealViewData(null);
+              setRealViewAngle("front");
             }}
           />
 
