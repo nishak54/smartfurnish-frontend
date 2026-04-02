@@ -823,51 +823,90 @@ function LivingRoomView({
     setTableState(layout.table);
   };
 
-  const handleGenerateRealView = async () => {
-    try {
-      setRealViewLoading(true);
-      setRealViewError("");
+const handleGenerateRealView = async () => {
+  try {
+    setRealViewLoading(true);
+    setRealViewError("");
 
-      const response = await fetch("/api/generate-real-view", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    const design = {
+      items: [
+        {
+          id: selectedSofa.id,
+          type: "sofa",
+          name: selectedSofa.name,
+          price: selectedSofa.price,
+          brand: selectedSofa.details?.brand || "Unknown",
+          color: selectedSofa.details?.color || "Unknown",
+          material: selectedSofa.details?.material || "Unknown",
+          in_stock: selectedSofa.details?.inStock === "Yes",
+          dimensions: selectedSofa.details?.dimensions || "",
+          rating: Number(selectedSofa.details?.rating || 0),
+          reviews: 0,
+          purchases: 0,
+          images: {
+            front: selectedSofa.imagePath,
+            left: selectedSofa.imagePath,
+            right: selectedSofa.imagePath,
+          },
+          positions: {
+            front: { x: 120, y: 285, width: 300, height: 145 },
+            left: { x: 150, y: 290, width: 250, height: 138 },
+            right: { x: 520, y: 290, width: 250, height: 138 },
+          },
         },
-        body: JSON.stringify({
-          roomType: "living room",
-          budget: Number(budget) || 0,
-          sofa: {
-            name: selectedSofa.name,
-            imagePath: selectedSofa.imagePath,
-            price: selectedSofa.price,
-            details: selectedSofa.details,
+        {
+          id: selectedTable.id,
+          type: "center_table",
+          name: selectedTable.name,
+          price: selectedTable.price,
+          brand: selectedTable.details?.brand || "Unknown",
+          color: selectedTable.details?.color || "Unknown",
+          material: selectedTable.details?.material || "Unknown",
+          in_stock: selectedTable.details?.inStock === "Yes",
+          dimensions: selectedTable.details?.dimensions || "",
+          rating: Number(selectedTable.details?.rating || 0),
+          reviews: 0,
+          purchases: 0,
+          images: {
+            front: selectedTable.imagePath,
+            left: selectedTable.imagePath,
+            right: selectedTable.imagePath,
           },
-          table: {
-            name: selectedTable.name,
-            imagePath: selectedTable.imagePath,
-            price: selectedTable.price,
-            details: selectedTable.details,
+          positions: {
+            front: { x: 425, y: 325, width: 145, height: 88 },
+            left: { x: 430, y: 328, width: 130, height: 82 },
+            right: { x: 360, y: 328, width: 130, height: 82 },
           },
-        }),
-      });
+        },
+      ],
+    };
 
-      if (!response.ok) {
-        throw new Error("Failed to generate real view");
-      }
+    const response = await fetch("/generate-realview", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ design }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!data.imageBase64) {
-        throw new Error("No real view image returned");
-      }
-
-      setRealViewImage(data.imageBase64);
-    } catch (error) {
-      setRealViewError(error.message || "Something went wrong");
-    } finally {
-      setRealViewLoading(false);
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to generate real view");
     }
-  };
+
+    if (!data.realview) {
+      throw new Error("No realview returned");
+    }
+
+    setRealViewImage(null);
+    console.log("realview response", data.realview);
+  } catch (error) {
+    setRealViewError(error.message || "Something went wrong");
+  } finally {
+    setRealViewLoading(false);
+  }
+};
 
   return (
     <div className="workspace-page">
