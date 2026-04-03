@@ -8,6 +8,9 @@ import {
 import * as THREE from "three";
 import "./App.css";
 
+const API_BASE =
+  process.env.REACT_APP_API_BASE || "https://smartfurnish-backend.onrender.com";
+
 const ROOM = {
   floorWidth: 14,
   floorDepth: 11,
@@ -34,6 +37,8 @@ const SOFA_OPTIONS = [
       inStock: "Yes",
       condition: "New",
       dimensions: '84" W × 35" D × 34" H',
+      color: "Off-white",
+      style: "Modern",
     },
   },
   {
@@ -52,6 +57,8 @@ const SOFA_OPTIONS = [
       inStock: "Yes",
       condition: "New",
       dimensions: '88" W × 36" D × 35" H',
+      color: "Off-white",
+      style: "Minimal",
     },
   },
   {
@@ -70,6 +77,8 @@ const SOFA_OPTIONS = [
       inStock: "Limited",
       condition: "Used",
       dimensions: '82" W × 34" D × 33" H',
+      color: "Cream",
+      style: "Curved Modern",
     },
   },
 ];
@@ -91,6 +100,8 @@ const TABLE_OPTIONS = [
       inStock: "Yes",
       condition: "New",
       dimensions: '42" W × 22" D × 18" H',
+      color: "Light Beige",
+      style: "Modern",
     },
   },
   {
@@ -109,6 +120,8 @@ const TABLE_OPTIONS = [
       inStock: "Yes",
       condition: "New",
       dimensions: '40" W × 24" D × 17" H',
+      color: "Oak",
+      style: "Minimal",
     },
   },
   {
@@ -127,6 +140,8 @@ const TABLE_OPTIONS = [
       inStock: "Yes",
       condition: "New",
       dimensions: '44" W × 24" D × 18" H',
+      color: "Beige",
+      style: "Luxury Modern",
     },
   },
 ];
@@ -744,29 +759,25 @@ function DummyOptionSection({ title, items, label }) {
   );
 }
 
-function RealViewPanel({ imageUrl, loading, error }) {
+function RealViewPanel({ imageUrl, loading, error, promptUsed }) {
   return (
     <div className="real-view-panel">
       <div className="real-view-header">
         <div className="real-view-title">Real View</div>
         <div className="real-view-subtitle">
-          Natural front-view room preview.
+          Front-view realistic room preview generated from the finalized 3D scene.
         </div>
       </div>
 
       {loading && (
-        <div className="real-view-placeholder">
-          Generating front view...
-        </div>
+        <div className="real-view-placeholder">Generating natural front view...</div>
       )}
 
-      {!loading && error && (
-        <div className="real-view-error">{error}</div>
-      )}
+      {!loading && error && <div className="real-view-error">{error}</div>}
 
       {!loading && !error && !imageUrl && (
         <div className="real-view-placeholder">
-          Click <strong>Generate Real View</strong> to see the front view.
+          Finalize your 3D layout and click <strong>Generate Real View</strong>.
         </div>
       )}
 
@@ -774,14 +785,55 @@ function RealViewPanel({ imageUrl, loading, error }) {
         <div className="real-view-image-wrap">
           <img
             src={imageUrl}
-            alt="Front view living room"
+            alt="Generated realistic living room"
             className="real-view-image"
           />
         </div>
       )}
+
+      {!loading && !error && promptUsed && (
+        <details style={{ marginTop: 12 }}>
+          <summary>Generation prompt</summary>
+          <div style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{promptUsed}</div>
+        </details>
+      )}
     </div>
   );
 }
+function buildScenePayload({ selectedSofa, selectedTable, sofaState, tableState, budget }) {
+  return {
+    roomType: "living_room",
+    view: "front",
+    budget: Number(budget) || 0,
+    scene: {
+      sofa: {
+        id: selectedSofa.id,
+        name: selectedSofa.name,
+        imagePath: selectedSofa.imagePath,
+        position: sofaState.position,
+        rotationY: sofaState.rotationY,
+        scale: sofaState.scale,
+        material: selectedSofa.details?.material || "",
+        color: selectedSofa.details?.color || "Off-white",
+        style: selectedSofa.details?.style || "Modern",
+        dimensions: selectedSofa.details?.dimensions || "",
+      },
+      table: {
+        id: selectedTable.id,
+        name: selectedTable.name,
+        imagePath: selectedTable.imagePath,
+        position: tableState.position,
+        rotationY: tableState.rotationY,
+        scale: tableState.scale,
+        material: selectedTable.details?.material || "",
+        color: selectedTable.details?.color || "Beige",
+        style: selectedTable.details?.style || "Modern",
+        dimensions: selectedTable.details?.dimensions || "",
+      },
+    },
+  };
+}
+
 function LivingRoomView({
   selectedSofa,
   setSelectedSofa,
@@ -798,11 +850,18 @@ function LivingRoomView({
   const [selectedId, setSelectedId] = useState(null);
   const [viewMode, setViewMode] = useState("front");
   const [realViewImageUrl, setRealViewImageUrl] = useState("");
+  const [realViewPrompt, setRealViewPrompt] = useState("");
   const [realViewLoading, setRealViewLoading] = useState(false);
   const [realViewError, setRealViewError] = useState("");
 
   const totalCost = selectedSofa.price + selectedTable.price;
   const withinBudget = totalCost <= budget;
+
+  const clearRealView = () => {
+    setRealViewImageUrl("");
+    setRealViewPrompt("");
+    setRealViewError("");
+  };
 
   const handleRegenerate = () => {
     const nextSofa =
@@ -815,8 +874,7 @@ function LivingRoomView({
     setSelectedId(null);
     setTransformMode("translate");
     setViewMode("front");
-    setRealViewImageUrl("");
-    setRealViewError("");
+    clearRealView();
 
     const layout = getDefaultLayout();
     setSofaState(layout.sofa);
@@ -828,11 +886,43 @@ function LivingRoomView({
       setRealViewLoading(true);
       setRealViewError("");
 
-      // Put your natural front room image in:
-      // public/assets/realview/front-room.png
-      const frontImageUrl = "/assets/realview/front-room.png";
+      const payload = buildScenePayload({
+        selectedSofa,
+        selectedTable,
+        sofaState,
+        tableState,
+        budget,
+      });
 
-      setRealViewImageUrl(frontImageUrl);
+      const response = await fetch(`${API_BASE}/generate-real-image`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const rawText = await response.text();
+      let data = {};
+
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          throw new Error(`Server returned non-JSON response: ${rawText.slice(0, 200)}`);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || `Request failed with status ${response.status}`);
+      }
+
+      if (!data.imageUrl) {
+        throw new Error("No generated image returned from backend");
+      }
+
+      setRealViewImageUrl(data.imageUrl);
+      setRealViewPrompt(data.promptUsed || "");
     } catch (error) {
       setRealViewError(error.message || "Something went wrong");
     } finally {
@@ -846,7 +936,7 @@ function LivingRoomView({
         <div>
           <div className="workspace-title">Living Room Concept</div>
           <div className="workspace-subtitle">
-            Interactive planning above, natural front view below.
+            Build in 3D first, then generate a realistic front-view room image.
           </div>
         </div>
 
@@ -893,13 +983,9 @@ function LivingRoomView({
               Angled View
             </button>
             <button onClick={handleRegenerate}>Regenerate View</button>
-            <button onClick={handleGenerateRealView}>
-              Generate Real View
-            </button>
+            <button onClick={handleGenerateRealView}>Generate Real View</button>
             {realViewImageUrl && (
-              <button onClick={handleGenerateRealView}>
-                Regenerate Real View
-              </button>
+              <button onClick={handleGenerateRealView}>Regenerate Real View</button>
             )}
             <button onClick={onBack}>Back</button>
           </div>
@@ -923,6 +1009,7 @@ function LivingRoomView({
             imageUrl={realViewImageUrl}
             loading={realViewLoading}
             error={realViewError}
+            promptUsed={realViewPrompt}
           />
         </div>
 
@@ -938,7 +1025,7 @@ function LivingRoomView({
               setSelectedSofa(nextSofa);
               setSelectedId(null);
               setTransformMode("translate");
-              setRealViewImageUrl("");
+              clearRealView();
             }}
           />
 
@@ -951,7 +1038,7 @@ function LivingRoomView({
               setSelectedTable(nextTable);
               setSelectedId(null);
               setTransformMode("translate");
-              setRealViewImageUrl("");
+              clearRealView();
             }}
           />
 
