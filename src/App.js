@@ -984,9 +984,6 @@ function LivingRoomView({
             </button>
             <button onClick={handleRegenerate}>Regenerate View</button>
             <button onClick={handleGenerateRealView}>Generate Real View</button>
-            {realViewImageUrl && (
-              <button onClick={handleGenerateRealView}>Regenerate Real View</button>
-            )}
             <button onClick={onBack}>Back</button>
           </div>
 
