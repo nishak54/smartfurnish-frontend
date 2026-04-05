@@ -982,7 +982,6 @@ function RealViewFullscreen({ imageUrl, onBack, onCompare, loading, error }) {
     </div>
   );
 }
-
 function LivingRoomView({
   selectedSofa,
   setSelectedSofa,
