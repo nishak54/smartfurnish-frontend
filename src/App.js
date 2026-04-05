@@ -237,14 +237,14 @@ function snapToWalls(position, item, scale, rotationY) {
 function getDefaultLayout() {
   return {
     sofa: {
-      position: [0, 0, -2.0],
+      position: [0, 0, -2.25],
       rotationY: 0,
-      scale: 1.02,
+      scale: 0.98,
     },
     table: {
-      position: [0, 0, 0.78],
+      position: [0, 0, 0.55],
       rotationY: 0,
-      scale: 1.0,
+      scale: 0.92,
     },
   };
 }
@@ -663,9 +663,9 @@ function CameraController() {
   const { camera } = useThree();
 
   useEffect(() => {
-    camera.position.set(6.4, 4.3, 8.2);
-    camera.fov = 38;
-    camera.lookAt(0, 1.15, 0);
+    camera.position.set(0, 4.4, 11.8);
+    camera.fov = 30;
+    camera.lookAt(0, 1.25, 0);
     camera.updateProjectionMatrix();
   }, [camera]);
 
@@ -687,10 +687,10 @@ function LivingRoomScene({
 
   return (
     <Canvas
-      camera={{ position: [6.4, 4.3, 8.2], fov: 38 }}
-      gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
-      onPointerMissed={() => setSelectedId(null)}
-    >
+  camera={{ position: [0, 4.4, 11.8], fov: 30 }}
+  gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+  onPointerMissed={() => setSelectedId(null)}
+>
       <CameraController />
 
       <Suspense fallback={null}>
@@ -718,12 +718,14 @@ function LivingRoomScene({
       </Suspense>
 
       <OrbitControls
-        ref={orbitRef}
-        target={[0, 1.15, 0]}
-        minDistance={4.8}
-        maxDistance={18}
-        maxPolarAngle={Math.PI / 2.04}
-      />
+  ref={orbitRef}
+  target={[0, 1.25, 0]}
+  minDistance={8}
+  maxDistance={18}
+  maxPolarAngle={Math.PI / 2.08}
+  minAzimuthAngle={-0.55}
+  maxAzimuthAngle={0.55}
+/>
     </Canvas>
   );
 }
