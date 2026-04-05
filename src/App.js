@@ -26,10 +26,12 @@ const SOFA_OPTIONS = [
     name: "Sofa 1",
     price: 650,
     imagePath: "/assets/items/sofa/sofa1.webp",
-    width: 5.4,
-    height: 2.8,
-    minScale: 0.9,
-    maxScale: 2.3,
+    visualWidth: 6.2,
+    visualHeight: 2.45,
+    footprintWidth: 5.6,
+    footprintDepth: 1.55,
+    minScale: 0.95,
+    maxScale: 1.8,
     details: {
       rating: "4.4",
       purchases: "1,280+",
@@ -46,10 +48,12 @@ const SOFA_OPTIONS = [
     name: "Sofa 2",
     price: 720,
     imagePath: "/assets/items/sofa/sofa2.webp",
-    width: 5.4,
-    height: 2.8,
-    minScale: 0.9,
-    maxScale: 2.3,
+    visualWidth: 6.4,
+    visualHeight: 2.5,
+    footprintWidth: 5.8,
+    footprintDepth: 1.6,
+    minScale: 0.95,
+    maxScale: 1.8,
     details: {
       rating: "4.6",
       purchases: "2,030+",
@@ -66,10 +70,12 @@ const SOFA_OPTIONS = [
     name: "Sofa 3",
     price: 810,
     imagePath: "/assets/items/sofa/sofa3.webp",
-    width: 5.4,
-    height: 2.8,
-    minScale: 0.9,
-    maxScale: 2.3,
+    visualWidth: 6.1,
+    visualHeight: 2.45,
+    footprintWidth: 5.5,
+    footprintDepth: 1.55,
+    minScale: 0.95,
+    maxScale: 1.8,
     details: {
       rating: "4.3",
       purchases: "860+",
@@ -89,10 +95,12 @@ const TABLE_OPTIONS = [
     name: "Center Table 1",
     price: 220,
     imagePath: "/assets/items/tables/table1.webp",
-    width: 3.2,
-    height: 1.5,
-    minScale: 0.7,
-    maxScale: 1.8,
+    visualWidth: 3.8,
+    visualHeight: 1.2,
+    footprintWidth: 3.1,
+    footprintDepth: 1.75,
+    minScale: 0.85,
+    maxScale: 1.45,
     details: {
       rating: "4.5",
       purchases: "940+",
@@ -109,10 +117,12 @@ const TABLE_OPTIONS = [
     name: "Center Table 2",
     price: 260,
     imagePath: "/assets/items/tables/table2.webp",
-    width: 3.2,
-    height: 1.5,
-    minScale: 0.7,
-    maxScale: 1.8,
+    visualWidth: 3.8,
+    visualHeight: 1.2,
+    footprintWidth: 3.1,
+    footprintDepth: 1.75,
+    minScale: 0.85,
+    maxScale: 1.45,
     details: {
       rating: "4.2",
       purchases: "610+",
@@ -129,10 +139,12 @@ const TABLE_OPTIONS = [
     name: "Center Table 3",
     price: 310,
     imagePath: "/assets/items/tables/table3.webp",
-    width: 3.2,
-    height: 1.5,
-    minScale: 0.7,
-    maxScale: 1.8,
+    visualWidth: 3.8,
+    visualHeight: 1.2,
+    footprintWidth: 3.1,
+    footprintDepth: 1.75,
+    minScale: 0.85,
+    maxScale: 1.45,
     details: {
       rating: "4.7",
       purchases: "1,420+",
@@ -196,8 +208,8 @@ function getFootprint(item, scale, rotationY) {
   const isSideways =
     Math.abs(Math.abs(normalizeAngle(snapped)) - Math.PI / 2) < 0.01;
 
-  const baseWidth = item.width;
-  const baseDepth = item.id.startsWith("sofa") ? 1.45 : 0.85;
+  const baseWidth = item.footprintWidth || item.visualWidth || 4;
+  const baseDepth = item.footprintDepth || 1.2;
 
   return {
     width: (isSideways ? baseDepth : baseWidth) * scale,
@@ -231,14 +243,14 @@ function snapToWalls(position, item, scale, rotationY) {
 function getDefaultLayout() {
   return {
     sofa: {
-      position: [0, 0, -1.7],
+      position: [0, 0, -1.9],
       rotationY: 0,
-      scale: 1.28,
+      scale: 1.12,
     },
     table: {
-      position: [0, 0, 0.35],
+      position: [0, 0, 0.7],
       rotationY: 0,
-      scale: 0.92,
+      scale: 1.08,
     },
   };
 }
@@ -467,10 +479,21 @@ function ItemObject({
   const texture = useItemTexture(item.imagePath);
   const groupRef = useRef(null);
 
-  const visualLift =
-    item.id.startsWith("sofa")
-      ? item.height / 2 - 0.18
-      : item.height / 2 - 0.06;
+  const imageWidth = texture?.image?.width || 1;
+  const imageHeight = texture?.image?.height || 1;
+  const aspectRatio = imageWidth / imageHeight;
+
+  const baseVisualWidth = item.visualWidth || 4;
+  const computedVisualHeight = baseVisualWidth / aspectRatio;
+
+  const visualHeight =
+    item.visualHeight && item.visualHeight > 0
+      ? item.visualHeight
+      : computedVisualHeight;
+
+  const visualLift = item.id.startsWith("sofa")
+    ? visualHeight / 2 - 0.08
+    : visualHeight / 2 - 0.03;
 
   const saveTransform = () => {
     if (!groupRef.current) return;
@@ -516,11 +539,11 @@ function ItemObject({
         }}
       >
         <mesh position={[0, visualLift, 0]}>
-          <planeGeometry args={[item.width, item.height]} />
+          <planeGeometry args={[baseVisualWidth, visualHeight]} />
           <meshBasicMaterial
             map={texture}
             transparent
-            alphaTest={0.05}
+            alphaTest={0.03}
             side={THREE.DoubleSide}
           />
         </mesh>
