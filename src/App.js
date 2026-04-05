@@ -1148,7 +1148,7 @@ function LivingRoomView({
 
   return (
     <>
-      <div className="workspace-page redesigned-workspace">
+      <div className="workspace-page redesigned-page">
         <div className="workspace-topbar redesigned-topbar">
           <div>
             <div className="workspace-title">Living Room Concept</div>
@@ -1196,8 +1196,8 @@ function LivingRoomView({
           </button>
         </div>
 
-        <div className="workspace-main-grid">
-          <div className="left-column">
+        <div className="designer-layout">
+          <div className="designer-left">
             <div className="panel-card">
               <div className="panel-header">
                 <div>
@@ -1208,7 +1208,7 @@ function LivingRoomView({
                 </div>
               </div>
 
-              <div className="viewer-frame featured-scene-frame">
+              <div className="viewer-frame hero-scene-frame">
                 <LivingRoomScene
                   selectedSofa={selectedSofa}
                   selectedTable={selectedTable}
@@ -1224,7 +1224,7 @@ function LivingRoomView({
             </div>
           </div>
 
-          <div className="right-column">
+          <div className="designer-right">
             <RealViewCard
               imageUrl={realViewImageUrl}
               loading={realViewLoading}
@@ -1275,7 +1275,11 @@ function LivingRoomView({
               label="Floor Lamp"
             />
 
-            <DummyOptionSection title="Rugs" items={RUG_OPTIONS} label="Rug" />
+            <DummyOptionSection
+              title="Rugs"
+              items={RUG_OPTIONS}
+              label="Rug"
+            />
           </div>
         </div>
       </div>
@@ -1306,50 +1310,5 @@ function LivingRoomView({
         />
       )}
     </>
-  );
-}
-
-export default function App() {
-  const [page, setPage] = useState("setup");
-  const [budget, setBudget] = useState(2000);
-  const [selectedSofa, setSelectedSofa] = useState(SOFA_OPTIONS[1]);
-  const [selectedTable, setSelectedTable] = useState(TABLE_OPTIONS[0]);
-  const [sofaState, setSofaState] = useState(getDefaultLayout().sofa);
-  const [tableState, setTableState] = useState(getDefaultLayout().table);
-
-  useEffect(() => {
-    const layout = getDefaultLayout();
-    setSofaState(layout.sofa);
-    setTableState(layout.table);
-  }, [selectedSofa, selectedTable]);
-
-  return (
-    <div className="app-shell">
-      {page === "setup" ? (
-        <SetupPage
-          budget={budget}
-          setBudget={setBudget}
-          onGenerate={() => {
-            const layout = getDefaultLayout();
-            setSofaState(layout.sofa);
-            setTableState(layout.table);
-            setPage("workspace");
-          }}
-        />
-      ) : (
-        <LivingRoomView
-          selectedSofa={selectedSofa}
-          setSelectedSofa={setSelectedSofa}
-          selectedTable={selectedTable}
-          setSelectedTable={setSelectedTable}
-          budget={Number(budget) || 0}
-          onBack={() => setPage("setup")}
-          sofaState={sofaState}
-          setSofaState={setSofaState}
-          tableState={tableState}
-          setTableState={setTableState}
-        />
-      )}
-    </div>
   );
 }
