@@ -785,21 +785,8 @@ function ProductCard({ item, active, label, onUse }) {
   );
 }
 
-function DummyProductCard({ item, label }) {
-  return (
-    <div className="dummy-card">
-      <div className="dummy-card-icon">{label.slice(0, 1)}</div>
-      <div className="dummy-card-content">
-        <div className="dummy-card-label">{label}</div>
-        <div className="dummy-card-name">{item.name}</div>
-        <div className="dummy-card-price">${item.price}</div>
-      </div>
-    </div>
-  );
-}
-
-function OptionSection({ title, items, activeId, label, onUse }) {
-  const [open, setOpen] = useState(title === "Sofas");
+function OptionSection({ title, items, activeId, label, onUse, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div className="option-section">
@@ -828,6 +815,19 @@ function OptionSection({ title, items, activeId, label, onUse }) {
   );
 }
 
+function DummyProductCard({ item, label }) {
+  return (
+    <div className="dummy-card">
+      <div className="dummy-card-icon">{label.slice(0, 1)}</div>
+      <div className="dummy-card-content">
+        <div className="dummy-card-label">{label}</div>
+        <div className="dummy-card-name">{item.name}</div>
+        <div className="dummy-card-price">${item.price}</div>
+      </div>
+    </div>
+  );
+}
+
 function DummyOptionSection({ title, items, label }) {
   const [open, setOpen] = useState(false);
 
@@ -851,6 +851,7 @@ function DummyOptionSection({ title, items, label }) {
     </div>
   );
 }
+
 function buildScenePayload({
   selectedSofa,
   selectedTable,
@@ -891,23 +892,23 @@ function buildScenePayload({
   };
 }
 
-function RealViewCard({ imageUrl, loading, error, onOpen, onCompare }) {
+function RealViewCard({ imageUrl, loading, error, onOpen, onCompare, onGenerate }) {
   return (
-    <div className="real-view-card">
-      <div className="section-head">
+    <div className="panel-card">
+      <div className="panel-header">
         <div>
-          <div className="section-title">Real View</div>
-          <div className="section-subtitle">
+          <div className="panel-title">Real View</div>
+          <div className="panel-subtitle">
             Realistic front-view preview generated from your selected layout.
           </div>
         </div>
 
         {imageUrl && !loading && (
-          <div className="section-actions">
+          <div className="panel-actions">
             <button className="ghost-button" onClick={onCompare}>
               Compare
             </button>
-            <button className="primary-button small-button" onClick={onOpen}>
+            <button className="primary-button compact-button" onClick={onOpen}>
               Open
             </button>
           </div>
@@ -915,21 +916,28 @@ function RealViewCard({ imageUrl, loading, error, onOpen, onCompare }) {
       </div>
 
       {loading && (
-        <div className="real-view-placeholder">
+        <div className="real-view-placeholder large-placeholder">
           Generating natural front view...
         </div>
       )}
 
-      {!loading && error && <div className="real-view-error">{error}</div>}
+      {!loading && error && (
+        <div className="real-view-error large-placeholder">{error}</div>
+      )}
 
       {!loading && !error && !imageUrl && (
-        <div className="real-view-placeholder">
-          Finalize your 3D layout and click <strong>Generate Real View</strong>.
+        <div className="real-view-placeholder large-placeholder">
+          <div className="empty-realview-content">
+            <div>Finalize your 3D layout and generate a realistic preview.</div>
+            <button className="primary-button" onClick={onGenerate}>
+              Generate Real View
+            </button>
+          </div>
         </div>
       )}
 
       {!loading && !error && imageUrl && (
-        <div className="real-view-image-wrap compact-real-view">
+        <div className="real-view-image-wrap side-real-view">
           <img
             src={imageUrl}
             alt="Generated realistic living room"
@@ -1140,8 +1148,8 @@ function LivingRoomView({
 
   return (
     <>
-      <div className="workspace-page">
-        <div className="workspace-topbar polished-topbar">
+      <div className="workspace-page redesigned-workspace">
+        <div className="workspace-topbar redesigned-topbar">
           <div>
             <div className="workspace-title">Living Room Concept</div>
             <div className="workspace-subtitle">
@@ -1157,14 +1165,13 @@ function LivingRoomView({
               </strong>
               <span>/ ${budget}</span>
             </div>
-
             <button className="ghost-button" onClick={onBack} aria-label="Back">
               ←
             </button>
           </div>
         </div>
 
-        <div className="tool-row polished-tool-row">
+        <div className="tool-row redesigned-toolbar">
           <button
             className={transformMode === "translate" ? "tool-active" : ""}
             onClick={() => setTransformMode("translate")}
@@ -1189,45 +1196,44 @@ function LivingRoomView({
           </button>
         </div>
 
-        <div className="pro-layout">
-          <div className="pro-main">
-            <div className="hero-grid">
-              <div className="scene-card">
-                <div className="section-head">
-                  <div>
-                    <div className="section-title">3D Scene</div>
-                    <div className="section-subtitle">
-                      Position, rotate, and scale your selected items.
-                    </div>
+        <div className="workspace-main-grid">
+          <div className="left-column">
+            <div className="panel-card">
+              <div className="panel-header">
+                <div>
+                  <div className="panel-title">3D Scene</div>
+                  <div className="panel-subtitle">
+                    Position, rotate, and scale your selected items.
                   </div>
-                </div>
-
-                <div className="viewer-frame large-scene-frame">
-                  <LivingRoomScene
-                    selectedSofa={selectedSofa}
-                    selectedTable={selectedTable}
-                    sofaState={sofaState}
-                    setSofaState={setSofaState}
-                    tableState={tableState}
-                    setTableState={setTableState}
-                    transformMode={transformMode}
-                    selectedId={selectedId}
-                    setSelectedId={setSelectedId}
-                  />
                 </div>
               </div>
 
-              <RealViewCard
-                imageUrl={realViewImageUrl}
-                loading={realViewLoading}
-                error={realViewError}
-                onOpen={() => setShowRealViewFullscreen(true)}
-                onCompare={() => setShowCompare(true)}
-              />
+              <div className="viewer-frame featured-scene-frame">
+                <LivingRoomScene
+                  selectedSofa={selectedSofa}
+                  selectedTable={selectedTable}
+                  sofaState={sofaState}
+                  setSofaState={setSofaState}
+                  tableState={tableState}
+                  setTableState={setTableState}
+                  transformMode={transformMode}
+                  selectedId={selectedId}
+                  setSelectedId={setSelectedId}
+                />
+              </div>
             </div>
           </div>
 
-          <aside className="pro-sidebar">
+          <div className="right-column">
+            <RealViewCard
+              imageUrl={realViewImageUrl}
+              loading={realViewLoading}
+              error={realViewError}
+              onGenerate={handleGenerateRealView}
+              onOpen={() => setShowRealViewFullscreen(true)}
+              onCompare={() => setShowCompare(true)}
+            />
+
             <div className="recommendation-header">Recommended Items</div>
 
             <OptionSection
@@ -1241,6 +1247,7 @@ function LivingRoomView({
                 setTransformMode("translate");
                 clearRealView();
               }}
+              defaultOpen={true}
             />
 
             <OptionSection
@@ -1269,7 +1276,7 @@ function LivingRoomView({
             />
 
             <DummyOptionSection title="Rugs" items={RUG_OPTIONS} label="Rug" />
-          </aside>
+          </div>
         </div>
       </div>
 
