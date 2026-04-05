@@ -1046,6 +1046,70 @@ function RealViewFullscreen({ imageUrl, onBack, onCompare, loading, error }) {
   );
 }
 
+function SceneQuickMenu({
+  open,
+  onClose,
+  transformMode,
+  setTransformMode,
+  onGenerateRealView,
+  onToggleRecommendations,
+  recommendationsOpen,
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="scene-quick-menu">
+      <button
+        className={transformMode === "translate" ? "menu-active" : ""}
+        onClick={() => {
+          setTransformMode("translate");
+          onClose();
+        }}
+      >
+        Move
+      </button>
+
+      <button
+        className={transformMode === "rotate" ? "menu-active" : ""}
+        onClick={() => {
+          setTransformMode("rotate");
+          onClose();
+        }}
+      >
+        Rotate
+      </button>
+
+      <button
+        className={transformMode === "scale" ? "menu-active" : ""}
+        onClick={() => {
+          setTransformMode("scale");
+          onClose();
+        }}
+      >
+        Resize
+      </button>
+
+      <button
+        onClick={() => {
+          onGenerateRealView();
+          onClose();
+        }}
+      >
+        Generate Real View
+      </button>
+
+      <button
+        onClick={() => {
+          onToggleRecommendations();
+          onClose();
+        }}
+      >
+        {recommendationsOpen ? "Hide Recommended Items" : "Show Recommended Items"}
+      </button>
+    </div>
+  );
+}
+
 function LivingRoomView({
   selectedSofa,
   setSelectedSofa,
@@ -1060,11 +1124,17 @@ function LivingRoomView({
 }) {
   const [transformMode, setTransformMode] = useState("translate");
   const [selectedId, setSelectedId] = useState(null);
+
   const [realViewImageUrl, setRealViewImageUrl] = useState("");
   const [realViewLoading, setRealViewLoading] = useState(false);
   const [realViewError, setRealViewError] = useState("");
+
   const [showRealViewFullscreen, setShowRealViewFullscreen] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+
+  const [workspaceMode, setWorkspaceMode] = useState("design");
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showSceneMenu, setShowSceneMenu] = useState(false);
 
   const totalCost = selectedSofa.price + selectedTable.price;
   const withinBudget = totalCost <= budget;
@@ -1074,6 +1144,7 @@ function LivingRoomView({
     setRealViewError("");
     setShowRealViewFullscreen(false);
     setShowCompare(false);
+    setWorkspaceMode("design");
   };
 
   const handleRegenerate = () => {
@@ -1138,9 +1209,11 @@ function LivingRoomView({
       }
 
       setRealViewImageUrl(data.imageUrl);
+      setWorkspaceMode("compare");
       setShowCompare(false);
     } catch (error) {
       setRealViewError(error.message || "Something went wrong");
+      setWorkspaceMode("compare");
     } finally {
       setRealViewLoading(false);
     }
@@ -1148,7 +1221,7 @@ function LivingRoomView({
 
   return (
     <>
-      <div className="workspace-page redesigned-page">
+      <div className="workspace-page redesigned-workspace">
         <div className="workspace-topbar redesigned-topbar">
           <div>
             <div className="workspace-title">Living Room Concept</div>
@@ -1165,123 +1238,180 @@ function LivingRoomView({
               </strong>
               <span>/ ${budget}</span>
             </div>
+
             <button className="ghost-button" onClick={onBack} aria-label="Back">
               ←
             </button>
           </div>
         </div>
 
-        <div className="tool-row redesigned-toolbar">
-          <button
-            className={transformMode === "translate" ? "tool-active" : ""}
-            onClick={() => setTransformMode("translate")}
-          >
-            Move
-          </button>
-          <button
-            className={transformMode === "rotate" ? "tool-active" : ""}
-            onClick={() => setTransformMode("rotate")}
-          >
-            Rotate
-          </button>
-          <button
-            className={transformMode === "scale" ? "tool-active" : ""}
-            onClick={() => setTransformMode("scale")}
-          >
-            Resize
-          </button>
-          <button onClick={handleRegenerate}>Regenerate View</button>
-          <button className="primary-button" onClick={handleGenerateRealView}>
-            Generate Real View
-          </button>
-        </div>
+        {workspaceMode === "design" && (
+          <div className={`design-layout ${showRecommendations ? "drawer-open" : ""}`}>
+            <div className="design-main">
+              <div className="panel-card">
+                <div className="panel-header scene-panel-header">
+                  <div>
+                    <div className="panel-title">3D Scene</div>
+                    <div className="panel-subtitle">
+                      Position, rotate, and scale your selected items.
+                    </div>
+                  </div>
 
-        <div className="designer-layout">
-          <div className="designer-left">
-            <div className="panel-card">
-              <div className="panel-header">
-                <div>
-                  <div className="panel-title">3D Scene</div>
-                  <div className="panel-subtitle">
-                    Position, rotate, and scale your selected items.
+                  <div className="scene-panel-actions">
+                    <button
+                      className="icon-button"
+                      onClick={handleRegenerate}
+                      aria-label="Regenerate View"
+                      title="Regenerate View"
+                    >
+                      ↻
+                    </button>
+
+                    <div className="scene-menu-wrap">
+                      <button
+                        className="icon-button"
+                        onClick={() => setShowSceneMenu((v) => !v)}
+                        aria-label="More actions"
+                        title="More actions"
+                      >
+                        ⋯
+                      </button>
+
+                      <SceneQuickMenu
+                        open={showSceneMenu}
+                        onClose={() => setShowSceneMenu(false)}
+                        transformMode={transformMode}
+                        setTransformMode={setTransformMode}
+                        onGenerateRealView={handleGenerateRealView}
+                        onToggleRecommendations={() =>
+                          setShowRecommendations((v) => !v)
+                        }
+                        recommendationsOpen={showRecommendations}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="viewer-frame hero-scene-frame">
-                <LivingRoomScene
-                  selectedSofa={selectedSofa}
-                  selectedTable={selectedTable}
-                  sofaState={sofaState}
-                  setSofaState={setSofaState}
-                  tableState={tableState}
-                  setTableState={setTableState}
-                  transformMode={transformMode}
-                  selectedId={selectedId}
-                  setSelectedId={setSelectedId}
-                />
+                <div className="viewer-frame hero-scene-frame">
+                  <LivingRoomScene
+                    selectedSofa={selectedSofa}
+                    selectedTable={selectedTable}
+                    sofaState={sofaState}
+                    setSofaState={setSofaState}
+                    tableState={tableState}
+                    setTableState={setTableState}
+                    transformMode={transformMode}
+                    selectedId={selectedId}
+                    setSelectedId={setSelectedId}
+                  />
+                </div>
               </div>
             </div>
+
+            {showRecommendations && (
+              <aside className="design-drawer">
+                <div className="recommendation-header">Recommended Items</div>
+
+                <OptionSection
+                  title="Sofas"
+                  items={SOFA_OPTIONS}
+                  activeId={selectedSofa.id}
+                  label="Sofa"
+                  onUse={(nextSofa) => {
+                    setSelectedSofa(nextSofa);
+                    setSelectedId(null);
+                    setTransformMode("translate");
+                    clearRealView();
+                  }}
+                  defaultOpen={true}
+                />
+
+                <OptionSection
+                  title="Center Tables"
+                  items={TABLE_OPTIONS}
+                  activeId={selectedTable.id}
+                  label="Center Table"
+                  onUse={(nextTable) => {
+                    setSelectedTable(nextTable);
+                    setSelectedId(null);
+                    setTransformMode("translate");
+                    clearRealView();
+                  }}
+                />
+
+                <DummyOptionSection
+                  title="TV Stands"
+                  items={TV_STAND_OPTIONS}
+                  label="TV Stand"
+                />
+
+                <DummyOptionSection
+                  title="Floor Lamps"
+                  items={FLOOR_LAMP_OPTIONS}
+                  label="Floor Lamp"
+                />
+
+                <DummyOptionSection
+                  title="Rugs"
+                  items={RUG_OPTIONS}
+                  label="Rug"
+                />
+              </aside>
+            )}
           </div>
+        )}
 
-          <div className="designer-right">
-            <RealViewCard
-              imageUrl={realViewImageUrl}
-              loading={realViewLoading}
-              error={realViewError}
-              onGenerate={handleGenerateRealView}
-              onOpen={() => setShowRealViewFullscreen(true)}
-              onCompare={() => setShowCompare(true)}
-            />
+        {workspaceMode === "compare" && (
+          <div className="workspace-main-grid">
+            <div className="left-column">
+              <div className="panel-card">
+                <div className="panel-header">
+                  <div>
+                    <div className="panel-title">3D Scene</div>
+                    <div className="panel-subtitle">
+                      Position, rotate, and scale your selected items.
+                    </div>
+                  </div>
 
-            <div className="recommendation-header">Recommended Items</div>
+                  <div className="scene-panel-actions">
+                    <button
+                      className="icon-button"
+                      onClick={() => setWorkspaceMode("design")}
+                      title="Back to design"
+                    >
+                      ←
+                    </button>
+                  </div>
+                </div>
 
-            <OptionSection
-              title="Sofas"
-              items={SOFA_OPTIONS}
-              activeId={selectedSofa.id}
-              label="Sofa"
-              onUse={(nextSofa) => {
-                setSelectedSofa(nextSofa);
-                setSelectedId(null);
-                setTransformMode("translate");
-                clearRealView();
-              }}
-              defaultOpen={true}
-            />
+                <div className="viewer-frame featured-scene-frame">
+                  <LivingRoomScene
+                    selectedSofa={selectedSofa}
+                    selectedTable={selectedTable}
+                    sofaState={sofaState}
+                    setSofaState={setSofaState}
+                    tableState={tableState}
+                    setTableState={setTableState}
+                    transformMode={transformMode}
+                    selectedId={selectedId}
+                    setSelectedId={setSelectedId}
+                  />
+                </div>
+              </div>
+            </div>
 
-            <OptionSection
-              title="Center Tables"
-              items={TABLE_OPTIONS}
-              activeId={selectedTable.id}
-              label="Center Table"
-              onUse={(nextTable) => {
-                setSelectedTable(nextTable);
-                setSelectedId(null);
-                setTransformMode("translate");
-                clearRealView();
-              }}
-            />
-
-            <DummyOptionSection
-              title="TV Stands"
-              items={TV_STAND_OPTIONS}
-              label="TV Stand"
-            />
-
-            <DummyOptionSection
-              title="Floor Lamps"
-              items={FLOOR_LAMP_OPTIONS}
-              label="Floor Lamp"
-            />
-
-            <DummyOptionSection
-              title="Rugs"
-              items={RUG_OPTIONS}
-              label="Rug"
-            />
+            <div className="right-column">
+              <RealViewCard
+                imageUrl={realViewImageUrl}
+                loading={realViewLoading}
+                error={realViewError}
+                onGenerate={handleGenerateRealView}
+                onOpen={() => setShowRealViewFullscreen(true)}
+                onCompare={() => setShowCompare(true)}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {showRealViewFullscreen && (
@@ -1310,5 +1440,50 @@ function LivingRoomView({
         />
       )}
     </>
+  );
+}
+
+export default function App() {
+  const [page, setPage] = useState("setup");
+  const [budget, setBudget] = useState(2000);
+  const [selectedSofa, setSelectedSofa] = useState(SOFA_OPTIONS[1]);
+  const [selectedTable, setSelectedTable] = useState(TABLE_OPTIONS[0]);
+  const [sofaState, setSofaState] = useState(getDefaultLayout().sofa);
+  const [tableState, setTableState] = useState(getDefaultLayout().table);
+
+  useEffect(() => {
+    const layout = getDefaultLayout();
+    setSofaState(layout.sofa);
+    setTableState(layout.table);
+  }, [selectedSofa, selectedTable]);
+
+  return (
+    <div className="app-shell">
+      {page === "setup" ? (
+        <SetupPage
+          budget={budget}
+          setBudget={setBudget}
+          onGenerate={() => {
+            const layout = getDefaultLayout();
+            setSofaState(layout.sofa);
+            setTableState(layout.table);
+            setPage("workspace");
+          }}
+        />
+      ) : (
+        <LivingRoomView
+          selectedSofa={selectedSofa}
+          setSelectedSofa={setSelectedSofa}
+          selectedTable={selectedTable}
+          setSelectedTable={setSelectedTable}
+          budget={Number(budget) || 0}
+          onBack={() => setPage("setup")}
+          sofaState={sofaState}
+          setSofaState={setSofaState}
+          tableState={tableState}
+          setTableState={setTableState}
+        />
+      )}
+    </div>
   );
 }
