@@ -569,7 +569,6 @@ function ItemObject({
     </>
   );
 }
-
 function CameraController() {
   const { camera } = useThree();
 
