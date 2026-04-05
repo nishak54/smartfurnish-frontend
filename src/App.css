@@ -590,3 +590,48 @@ img {
     padding: 18px;
   }
 }
+.fake-3d-room {
+  position: relative;
+  height: 100%;
+  background: url("/assets/room.jpg") center/cover no-repeat;
+}
+
+.sofa-3d {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+}
+
+.table-3d {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px; /* 👈 reduced size */
+}
+
+.realview-fullscreen {
+  height: 100vh;
+  background: #fff;
+}
+
+.realview-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.realview-image-big {
+  width: 100%;
+  height: calc(100vh - 80px);
+  object-fit: cover;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 80vh;
+  gap: 20px;
+}
