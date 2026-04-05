@@ -26,12 +26,11 @@ const SOFA_OPTIONS = [
     name: "Sofa 1",
     price: 650,
     imagePath: "/assets/items/sofa/sofa1.webp",
-    visualWidth: 6.2,
-    visualHeight: 2.45,
-    footprintWidth: 5.6,
-    footprintDepth: 1.55,
-    minScale: 0.95,
-    maxScale: 1.8,
+    visualWidth: 7.2,
+    footprintWidth: 5.9,
+    footprintDepth: 1.6,
+    minScale: 0.9,
+    maxScale: 1.6,
     details: {
       rating: "4.4",
       purchases: "1,280+",
@@ -48,12 +47,11 @@ const SOFA_OPTIONS = [
     name: "Sofa 2",
     price: 720,
     imagePath: "/assets/items/sofa/sofa2.webp",
-    visualWidth: 6.4,
-    visualHeight: 2.5,
-    footprintWidth: 5.8,
+    visualWidth: 7.2,
+    footprintWidth: 5.9,
     footprintDepth: 1.6,
-    minScale: 0.95,
-    maxScale: 1.8,
+    minScale: 0.9,
+    maxScale: 1.6,
     details: {
       rating: "4.6",
       purchases: "2,030+",
@@ -70,12 +68,11 @@ const SOFA_OPTIONS = [
     name: "Sofa 3",
     price: 810,
     imagePath: "/assets/items/sofa/sofa3.webp",
-    visualWidth: 6.1,
-    visualHeight: 2.45,
-    footprintWidth: 5.5,
+    visualWidth: 7.0,
+    footprintWidth: 5.7,
     footprintDepth: 1.55,
-    minScale: 0.95,
-    maxScale: 1.8,
+    minScale: 0.9,
+    maxScale: 1.6,
     details: {
       rating: "4.3",
       purchases: "860+",
@@ -95,12 +92,11 @@ const TABLE_OPTIONS = [
     name: "Center Table 1",
     price: 220,
     imagePath: "/assets/items/tables/table1.webp",
-    visualWidth: 3.8,
-    visualHeight: 1.2,
-    footprintWidth: 3.1,
-    footprintDepth: 1.75,
-    minScale: 0.85,
-    maxScale: 1.45,
+    visualWidth: 4.4,
+    footprintWidth: 3.3,
+    footprintDepth: 1.9,
+    minScale: 0.9,
+    maxScale: 1.35,
     details: {
       rating: "4.5",
       purchases: "940+",
@@ -117,12 +113,11 @@ const TABLE_OPTIONS = [
     name: "Center Table 2",
     price: 260,
     imagePath: "/assets/items/tables/table2.webp",
-    visualWidth: 3.8,
-    visualHeight: 1.2,
-    footprintWidth: 3.1,
-    footprintDepth: 1.75,
-    minScale: 0.85,
-    maxScale: 1.45,
+    visualWidth: 4.4,
+    footprintWidth: 3.3,
+    footprintDepth: 1.9,
+    minScale: 0.9,
+    maxScale: 1.35,
     details: {
       rating: "4.2",
       purchases: "610+",
@@ -139,12 +134,11 @@ const TABLE_OPTIONS = [
     name: "Center Table 3",
     price: 310,
     imagePath: "/assets/items/tables/table3.webp",
-    visualWidth: 3.8,
-    visualHeight: 1.2,
-    footprintWidth: 3.1,
-    footprintDepth: 1.75,
-    minScale: 0.85,
-    maxScale: 1.45,
+    visualWidth: 4.4,
+    footprintWidth: 3.3,
+    footprintDepth: 1.9,
+    minScale: 0.9,
+    maxScale: 1.35,
     details: {
       rating: "4.7",
       purchases: "1,420+",
@@ -243,14 +237,14 @@ function snapToWalls(position, item, scale, rotationY) {
 function getDefaultLayout() {
   return {
     sofa: {
-      position: [0, 0, -1.9],
+      position: [0, 0, -2.0],
       rotationY: 0,
-      scale: 1.12,
+      scale: 1.02,
     },
     table: {
-      position: [0, 0, 0.7],
+      position: [0, 0, 0.78],
       rotationY: 0,
-      scale: 1.08,
+      scale: 1.0,
     },
   };
 }
@@ -467,6 +461,82 @@ function RoomShell() {
   );
 }
 
+function useTrimmedTextureData(path) {
+  const texture = useLoader(THREE.TextureLoader, path);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+
+  const trimmed = useMemo(() => {
+    const img = texture.image;
+    if (!img || !img.width || !img.height) {
+      return {
+        texture,
+        aspect: 1,
+        offsetX: 0,
+        offsetY: 0,
+        visibleWidthRatio: 1,
+        visibleHeightRatio: 1,
+      };
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+
+    const { data, width, height } = ctx.getImageData(0, 0, img.width, img.height);
+
+    let minX = width;
+    let minY = height;
+    let maxX = 0;
+    let maxY = 0;
+    let found = false;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha > 10) {
+          found = true;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (!found) {
+      return {
+        texture,
+        aspect: width / height,
+        offsetX: 0,
+        offsetY: 0,
+        visibleWidthRatio: 1,
+        visibleHeightRatio: 1,
+      };
+    }
+
+    const trimmedWidth = maxX - minX + 1;
+    const trimmedHeight = maxY - minY + 1;
+
+    return {
+      texture,
+      aspect: trimmedWidth / trimmedHeight,
+      offsetX: ((minX + trimmedWidth / 2) / width - 0.5),
+      offsetY: ((minY + trimmedHeight / 2) / height - 0.5),
+      visibleWidthRatio: trimmedWidth / width,
+      visibleHeightRatio: trimmedHeight / height,
+    };
+  }, [texture]);
+
+  return trimmed;
+}
+
 function ItemObject({
   item,
   itemState,
@@ -476,24 +546,29 @@ function ItemObject({
   transformMode,
   orbitRef,
 }) {
-  const texture = useItemTexture(item.imagePath);
   const groupRef = useRef(null);
-
-  const imageWidth = texture?.image?.width || 1;
-  const imageHeight = texture?.image?.height || 1;
-  const aspectRatio = imageWidth / imageHeight;
+  const {
+    texture,
+    aspect,
+    offsetX,
+    offsetY,
+    visibleWidthRatio,
+    visibleHeightRatio,
+  } = useTrimmedTextureData(item.imagePath);
 
   const baseVisualWidth = item.visualWidth || 4;
-  const computedVisualHeight = baseVisualWidth / aspectRatio;
+  const visibleWidth = baseVisualWidth;
+  const visibleHeight = visibleWidth / aspect;
 
-  const visualHeight =
-    item.visualHeight && item.visualHeight > 0
-      ? item.visualHeight
-      : computedVisualHeight;
+  const fullPlaneWidth = visibleWidth / visibleWidthRatio;
+  const fullPlaneHeight = visibleHeight / visibleHeightRatio;
+
+  const offsetWorldX = offsetX * fullPlaneWidth;
+  const offsetWorldY = offsetY * fullPlaneHeight;
 
   const visualLift = item.id.startsWith("sofa")
-    ? visualHeight / 2 - 0.08
-    : visualHeight / 2 - 0.03;
+    ? visibleHeight / 2 - 0.02
+    : visibleHeight / 2 - 0.01;
 
   const saveTransform = () => {
     if (!groupRef.current) return;
@@ -538,12 +613,26 @@ function ItemObject({
           setSelectedId(item.id);
         }}
       >
-        <mesh position={[0, visualLift, 0]}>
-          <planeGeometry args={[baseVisualWidth, visualHeight]} />
+        {!item.id.startsWith("sofa") && (
+          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[visibleWidth * 0.9, visibleWidth * 0.52]} />
+            <meshBasicMaterial transparent opacity={0.12} color="#000000" />
+          </mesh>
+        )}
+
+        {item.id.startsWith("sofa") && (
+          <mesh position={[0, 0.03, -0.08]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[visibleWidth * 0.95, visibleWidth * 0.28]} />
+            <meshBasicMaterial transparent opacity={0.1} color="#000000" />
+          </mesh>
+        )}
+
+        <mesh position={[offsetWorldX, visualLift + offsetWorldY, 0]}>
+          <planeGeometry args={[fullPlaneWidth, fullPlaneHeight]} />
           <meshBasicMaterial
             map={texture}
             transparent
-            alphaTest={0.03}
+            alphaTest={0.02}
             side={THREE.DoubleSide}
           />
         </mesh>
@@ -569,6 +658,7 @@ function ItemObject({
     </>
   );
 }
+
 function CameraController() {
   const { camera } = useThree();
 
