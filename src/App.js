@@ -892,9 +892,9 @@ function buildScenePayload({
   };
 }
 
-function RealViewCard({ imageUrl, loading, error, onOpen, onCompare, onGenerate }) {
+function RealViewCard({ imageUrl, loading, error, onGenerate }) {
   return (
-    <div className="panel-card">
+    <div className="panel-card split-panel-card">
       <div className="panel-header">
         <div>
           <div className="panel-title">Real View</div>
@@ -902,31 +902,20 @@ function RealViewCard({ imageUrl, loading, error, onOpen, onCompare, onGenerate 
             Realistic front-view preview generated from your selected layout.
           </div>
         </div>
-
-        {imageUrl && !loading && (
-          <div className="panel-actions">
-            <button className="ghost-button" onClick={onCompare}>
-              Compare
-            </button>
-            <button className="primary-button compact-button" onClick={onOpen}>
-              Open
-            </button>
-          </div>
-        )}
       </div>
 
       {loading && (
-        <div className="real-view-placeholder large-placeholder">
+        <div className="real-view-placeholder split-placeholder">
           Generating natural front view...
         </div>
       )}
 
       {!loading && error && (
-        <div className="real-view-error large-placeholder">{error}</div>
+        <div className="real-view-error split-placeholder">{error}</div>
       )}
 
       {!loading && !error && !imageUrl && (
-        <div className="real-view-placeholder large-placeholder">
+        <div className="real-view-placeholder split-placeholder">
           <div className="empty-realview-content">
             <div>Finalize your 3D layout and generate a realistic preview.</div>
             <button className="primary-button" onClick={onGenerate}>
@@ -937,7 +926,7 @@ function RealViewCard({ imageUrl, loading, error, onOpen, onCompare, onGenerate 
       )}
 
       {!loading && !error && imageUrl && (
-        <div className="real-view-image-wrap side-real-view">
+        <div className="real-view-image-wrap split-real-view">
           <img
             src={imageUrl}
             alt="Generated realistic living room"
@@ -1129,9 +1118,6 @@ function LivingRoomView({
   const [realViewLoading, setRealViewLoading] = useState(false);
   const [realViewError, setRealViewError] = useState("");
 
-  const [showRealViewFullscreen, setShowRealViewFullscreen] = useState(false);
-  const [showCompare, setShowCompare] = useState(false);
-
   const [workspaceMode, setWorkspaceMode] = useState("design");
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showSceneMenu, setShowSceneMenu] = useState(false);
@@ -1139,13 +1125,11 @@ function LivingRoomView({
   const totalCost = selectedSofa.price + selectedTable.price;
   const withinBudget = totalCost <= budget;
 
-  const clearRealView = () => {
-    setRealViewImageUrl("");
-    setRealViewError("");
-    setShowRealViewFullscreen(false);
-    setShowCompare(false);
-    setWorkspaceMode("design");
-  };
+const clearRealView = () => {
+  setRealViewImageUrl("");
+  setRealViewError("");
+  setWorkspaceMode("design");
+};
 
   const handleRegenerate = () => {
     const nextSofa =
@@ -1210,7 +1194,6 @@ function LivingRoomView({
 
       setRealViewImageUrl(data.imageUrl);
       setWorkspaceMode("compare");
-      setShowCompare(false);
     } catch (error) {
       setRealViewError(error.message || "Something went wrong");
       setWorkspaceMode("compare");
@@ -1362,86 +1345,54 @@ function LivingRoomView({
         )}
 
         {workspaceMode === "compare" && (
-          <div className="workspace-main-grid">
-            <div className="left-column">
-              <div className="panel-card">
-                <div className="panel-header">
-                  <div>
-                    <div className="panel-title">3D Scene</div>
-                    <div className="panel-subtitle">
-                      Position, rotate, and scale your selected items.
-                    </div>
-                  </div>
-
-                  <div className="scene-panel-actions">
-                    <button
-                      className="icon-button"
-                      onClick={() => setWorkspaceMode("design")}
-                      title="Back to design"
-                    >
-                      ←
-                    </button>
-                  </div>
-                </div>
-
-                <div className="viewer-frame featured-scene-frame">
-                  <LivingRoomScene
-                    selectedSofa={selectedSofa}
-                    selectedTable={selectedTable}
-                    sofaState={sofaState}
-                    setSofaState={setSofaState}
-                    tableState={tableState}
-                    setTableState={setTableState}
-                    transformMode={transformMode}
-                    selectedId={selectedId}
-                    setSelectedId={setSelectedId}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="right-column">
-              <RealViewCard
-                imageUrl={realViewImageUrl}
-                loading={realViewLoading}
-                error={realViewError}
-                onGenerate={handleGenerateRealView}
-                onOpen={() => setShowRealViewFullscreen(true)}
-                onCompare={() => setShowCompare(true)}
-              />
+  <div className="split-layout-equal">
+    <div className="split-half">
+      <div className="panel-card split-panel-card">
+        <div className="panel-header">
+          <div>
+            <div className="panel-title">3D Scene</div>
+            <div className="panel-subtitle">
+              Position, rotate, and scale your selected items.
             </div>
           </div>
-        )}
+
+          <div className="scene-panel-actions">
+            <button
+              className="icon-button"
+              onClick={() => setWorkspaceMode("design")}
+              title="Back to design"
+            >
+              ←
+            </button>
+          </div>
+        </div>
+
+        <div className="viewer-frame split-scene-frame">
+          <LivingRoomScene
+            selectedSofa={selectedSofa}
+            selectedTable={selectedTable}
+            sofaState={sofaState}
+            setSofaState={setSofaState}
+            tableState={tableState}
+            setTableState={setTableState}
+            transformMode={transformMode}
+            selectedId={selectedId}
+            setSelectedId={setSelectedId}
+          />
+        </div>
       </div>
+    </div>
 
-      {showRealViewFullscreen && (
-        <RealViewFullscreen
-          imageUrl={realViewImageUrl}
-          loading={realViewLoading}
-          error={realViewError}
-          onBack={() => {
-            setShowRealViewFullscreen(false);
-            setShowCompare(false);
-          }}
-          onCompare={() => setShowCompare(true)}
-        />
-      )}
-
-      {showCompare && (
-        <CompareOverlay
-          onClose={() => setShowCompare(false)}
-          realViewImageUrl={realViewImageUrl}
-          selectedSofa={selectedSofa}
-          selectedTable={selectedTable}
-          sofaState={sofaState}
-          setSofaState={setSofaState}
-          tableState={tableState}
-          setTableState={setTableState}
-        />
-      )}
-    </>
-  );
-}
+    <div className="split-half">
+      <RealViewCard
+        imageUrl={realViewImageUrl}
+        loading={realViewLoading}
+        error={realViewError}
+        onGenerate={handleGenerateRealView}
+      />
+    </div>
+  </div>
+)}
 
 export default function App() {
   const [page, setPage] = useState("setup");
