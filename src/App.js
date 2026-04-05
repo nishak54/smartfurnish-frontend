@@ -663,9 +663,9 @@ function CameraController() {
   const { camera } = useThree();
 
   useEffect(() => {
-    camera.position.set(0, 4.4, 11.8);
+    camera.position.set(0, 4.2, 11.5);
     camera.fov = 30;
-    camera.lookAt(0, 1.25, 0);
+    camera.lookAt(0, 1.15, 0);
     camera.updateProjectionMatrix();
   }, [camera]);
 
@@ -687,7 +687,7 @@ function LivingRoomScene({
 
   return (
     <Canvas
-  camera={{ position: [0, 4.4, 11.8], fov: 30 }}
+  camera={{ position: [0, 4.2, 11.5], fov: 30 }}
   gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
   onPointerMissed={() => setSelectedId(null)}
 >
@@ -719,12 +719,10 @@ function LivingRoomScene({
 
       <OrbitControls
   ref={orbitRef}
-  target={[0, 1.25, 0]}
-  minDistance={8}
-  maxDistance={18}
-  maxPolarAngle={Math.PI / 2.08}
-  minAzimuthAngle={-0.55}
-  maxAzimuthAngle={0.55}
+  target={[0, 1.15, 0]}
+  minDistance={5}
+  maxDistance={26}
+  maxPolarAngle={Math.PI / 2.02}
 />
     </Canvas>
   );
