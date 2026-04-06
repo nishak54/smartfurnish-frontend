@@ -962,7 +962,7 @@ function CompareOverlay({
 
       <div className="compare-grid">
         <div className="compare-panel">
-          <div className="compare-panel-title">3D Scene</div>
+          <div className="compare-panel-title">3D</div>
           <div className="viewer-frame compare-viewer-frame">
             <LivingRoomScene
               selectedSofa={selectedSofa}
