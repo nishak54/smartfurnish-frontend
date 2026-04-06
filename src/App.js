@@ -1234,7 +1234,7 @@ const clearRealView = () => {
               <div className="panel-card">
                 <div className="panel-header scene-panel-header">
                   <div>
-                    <div className="panel-title">3D Scene</div>
+                    <div className="panel-title">3D</div>
                     <div className="panel-subtitle">
                       Position, rotate, and scale your selected items.
                     </div>
@@ -1350,7 +1350,7 @@ const clearRealView = () => {
       <div className="panel-card split-panel-card">
         <div className="panel-header">
           <div>
-            <div className="panel-title">3D Scene</div>
+            <div className="panel-title">3D</div>
             <div className="panel-subtitle">
               Position, rotate, and scale your selected items.
             </div>
