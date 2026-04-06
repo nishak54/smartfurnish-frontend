@@ -1394,6 +1394,11 @@ const clearRealView = () => {
   </div>
 )}
 
+      </div>
+    </>
+  );
+}
+
 export default function App() {
   const [page, setPage] = useState("setup");
   const [budget, setBudget] = useState(2000);
